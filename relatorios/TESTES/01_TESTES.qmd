@@ -24,7 +24,7 @@ texto texto texto texto texto texto texto texto texto texto texto texto texto
 
 _ item 1
 
-_item 2
+_ item 2
 
    _ subitem 1
    _ subitem 2
@@ -38,9 +38,29 @@ _item 2
 3. item 3
 
 
+## inserindo links para páginas da web 
+
+[ifmg - campus formiga](http://formiga.ifmg.edu.br/){target="_blank"}
 
 
 
+Integral:
+
+$$
+\int_{a}^{b} f(x) dx
+$$
+## células de códigos 
+
+para inserir uma célula de código R em um arquivo quarto, podemos usar o atalho 
+Ctra + Alt + I:
+
+```{r}
+# simulando uma VA com distribuição normal padrão
+x <- rnorm(1000)
+
+#gráfico de linha da variável simulado
+plot (x, type = "l")
+```
 
 
 

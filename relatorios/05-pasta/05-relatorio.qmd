@@ -1,0 +1,872 @@
+---
+title: "Organização de Dados com o Pacote tidyr"
+subtitle: "Disciplina: Introducão à Ciência de Dados"
+lang: pt-BR
+author: "Seu Nome"
+date: 2025-05-07
+format: 
+  html:
+    theme: flatly
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  message: false
+  warning: false
+---
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura exibição de números
+options(digits = 8, scipen = 999)
+
+# carrega pacotes
+library(tidyverse)
+library(gapminder)
+library(kableExtra)
+```
+
+
+
+# Metodologia CRISP-DM e Pacote dplyr 
+
+
+## Um Pipeline Completo de Análise com dplyr
+
+```{r}
+# inicia com a df (gapminder) e salva o resultado final
+relatorio_expectativa <- gapminder %>%
+  # Filtra apenas os dados de 2007
+  filter(year == 2007) %>%
+  # Agrupa por continente
+  group_by(continent) %>%
+  # Calcula estatísticas por continente
+  summarize(
+    expectativa_media = mean(lifeExp),
+    expectativa_minima = min(lifeExp),
+    expectativa_maxima = max(lifeExp),
+  ) %>%
+  # Ordena do maior para o menor
+  arrange(desc(expectativa_media))
+
+# Visualiza o resultado final
+relatorio_expectativa
+```
+
+
+
+
+## Tabela com o Pacote KableExtra
+
+```{r}
+#| label: tbl-1
+#| tbl-cap: "Expectativa de Vida (em anos) por Continente (2007)"
+#| echo: false
+#| eval: true
+#| html-table-processing: none
+
+
+# inicia com a df contendo o resultado do pipeline
+relatorio_expectativa %>%
+  # Converte a df em uma tabela kable (tabela básica HTML/LaTeX)
+  kable(
+    # Renomeia as colunas para português
+    col.names = c(
+      "Continente", "Expectativa Média", "Expectativa Mínima", "Expectativa Máxima"
+    ),
+    # Formata os números com 1 casa decimal
+    digits = 1,
+    # vírgula como separador decimal
+    format.args = list(decimal.mark = ",")
+  ) %>%
+  # Adiciona estilo à tabela para melhorar o visual
+  kable_classic(
+    # tamanho da fonte
+    font_size = 19,
+    # Impede que a tabela ocupe toda a largura disponível
+    full_width = FALSE,
+    # # Centraliza a tabela
+    position = "center"
+  ) %>%
+  # Aplica formatação específica à coluna da expectativa média
+  column_spec(
+    # Aplica a formatação à segunda coluna (Expectativa Média)
+    2,
+    # Coloca o texto em negrito para melhor destaque
+    bold = TRUE,
+    # Define a cor dos números como branco
+    color = "white",
+    # Aplica um gradiente de cores ao fundo das células
+    background = spec_color(
+      # A expectativa_media determinar a intensidade das cores
+      relatorio_expectativa$expectativa_media,
+      # início do gradiente com intensidade alta
+      begin = 0.9,
+      # fim do gradiente com intensidade baixa
+      end = 0.1,
+      # paleta de cores "viridis" (azul-verde-amarelo)
+      option = "viridis",
+      # 1 = valores mais altos recebem cores mais intensas
+      direction = 1
+    )
+  )
+```
+
+
+
+
+# A Função tidyr::pivot_longer {.center background-color="#F1E9D2"}
+
+## O que é a função pivot_longer()?
+
+- A função `pivot_longer()` converte dados do formato **amplo** (wide) 
+para o formato **longo** (long)
+
+- É muito útil quando as colunas contêm **valores** em vez de **variáveis**
+  
+- Geralmente, é o primeiro passo para transformar planilhas de negócios em 
+  dados organizados para análise (*tidy data*)
+
+
+
+
+
+
+
+## Sintaxe da função pivot_longer()
+
+
+```{r}
+#| eval: false
+
+# sintaxe básica
+dados %>%
+  pivot_longer(
+    cols = "valores_de_uma_nova_coluna",
+    names_to = "nome_nova_coluna",
+    values_to = "nome_outra_nova_coluna"
+  )
+```
+
+- **valores_de_uma_nova_coluna**: as <u>colunas</u> que contêm valores de 
+uma variável e serão transformadas.
+
+- **nome_nova_coluna**: <u>nome</u> da nova coluna/variável que conterá os 
+nomes das colunas originais.
+
+- **nome_outra_nova_coluna**: <u>nome</u> da nova coluna/variável que 
+conterá os valores originais.
+
+
+
+
+## A Função tribble()
+
+A função `tribble()` (abreviação de "*transposed tibble*") é uma forma 
+elegante de criar pequenas tibbles/data frames para exemplos ou testes:
+
+```{r}
+# Cria uma data frame com tribble()
+produtos <- tribble(
+  ~codigo, ~produto, ~preco, # Nomes das colunas começam com ~
+  "A123", "Notebook", 3500, # Cada linha é um registro
+  "B456", "Smartphone", 1800, # Os valores são separados por vírgulas
+  "C789", "Monitor", 950 # A formatação facilita a leitura
+)
+
+# Visualiza a data frame criada
+produtos
+```
+
+**Vantagens da função tribble():**
+
+- **Layout Visual**: Cada linha do código corresponde a uma linha da data 
+  frame, tornando o código mais legível
+  
+- **Especificação direta**: Os nomes das colunas são definidos com ~ (til)
+
+- **Flexibilidade de tipos**: Cada coluna pode conter diferentes tipos de dados
+
+- **Ideal para exemplos**: Perfeita para criar pequenas data frames para 
+demonstrações ou testes
+
+Esta função faz parte do pacote `tibble`, que é carregado automaticamente 
+quando você carrega o `tidyverse`.
+
+
+
+
+## Exemplo Básico de pivot_longer()
+
+
+Podemos criar dados de receita trimestral no formato amplo/wide (ou 
+seja, desorganizados para análise) com:
+
+```{r}
+# Criando a data frame de exemplo
+receitas <- tribble(
+  ~produto, ~T1, ~T2, ~T3, ~T4,
+  "Produto A", 50000, 55000, 60000, 65000,
+  "Produto B", 30000, 32000, 35000, 37000,
+  "Produto C", 20000, 22000, 25000, 27000
+)
+
+# Visualiza a data frame criada
+receitas
+```
+
+Este formato é para apresentação ou visualização humaa, não para 
+armazenar os dados para análise.
+
+Transformando para o formato longo/organizado:
+
+```{r}
+# Transforma para o formato longo usando pivot_longer
+receitas_longas <- receitas %>%
+  pivot_longer(
+    cols = c("T1", "T2", "T3", "T4"), # colunas que serão valores de nova coluna
+    names_to = "trimestre", # nome da nova coluna
+    values_to = "receita" # nome de outra nova coluna
+  )
+
+# Visualiza o resultado (formato longo/organizado)
+receitas_longas
+```
+
+Agora os dados estão organizados:
+
+- Cada linha é uma observação (um produto em um trimestre)
+- Cada coluna é uma variável (produto, trimestre, receita)
+- Cada célula contém um único valor
+
+
+
+
+
+## Exemplo Intermediário: Várias Colunas
+
+Dados fictícios com indicadores de desempenho financeiro podem 
+ser criados com:
+
+```{r}
+# Cria umz data frame com dois indicadores por trimestre
+desempenho <- tribble(
+  ~empresa, ~receita_T1, ~receita_T2, ~despesa_T1, ~despesa_T2,
+  "Empresa A", 150000, 175000, 120000, 130000,
+  "Empresa B", 250000, 270000, 200000, 220000,
+  "Empresa C", 100000, 115000, 80000, 95000
+)
+
+# Visualiza a data frame criada
+desempenho
+```
+
+Este formato é ainda mais desorganizado, pois mistura três variáveis 
+(receita, despesa e trimestre) nos nomes das colunas.
+
+Podemos organizar os dados para análise com:
+
+```{r}
+# Transforma para o formato longo usando pivot_longer
+desempenho_longo <- desempenho %>%
+  pivot_longer(
+    cols = -empresa, # todas as colunas exceto "empresa"
+    names_to = c("indicador", "trimestre"), # nomes das duas novas colunas
+    names_sep = "_", # separador nos nomes das colunas
+    values_to = "valor" # nome de nova coluna para receber os valores
+  )
+
+# Visualiza o resultado
+desempenho_longo
+```
+
+**Observação importante:** 
+
+- Os nomes das colunas originais (`receita_T1`, `receita_T2`, etc.) são 
+divididos pelo separador "_" em exatamente duas partes. 
+
+- A primeira parte ("receita" ou "despesa") vai para a coluna "indicador" 
+e a segunda parte ("T1" ou "T2") vai para a coluna "trimestre". 
+
+- Este é um padrão comum em dados financeiros: quando os nomes de colunas 
+seguem um formato consistente com separadores, podemos extrair as informações 
+contidas neles para criar novas variáveis.
+
+
+
+
+
+## Exemplo Avançado 
+
+Indicadores financeiros por trimestre:
+
+```{r}
+# cria a data frame
+receita_trimestral <- tribble(
+  ~empresa, ~`2022_T1_Receita`, ~`2022_T2_Receita`, ~`2023_T1_Receita`, ~`2023_T2_Receita`,
+  "ABC Ltda", 1200000, 1350000, 1500000, 1620000,
+  "XYZ S.A.", 2500000, 2700000, 2900000, 3100000
+)
+
+# Visualiza a data frame criada
+receita_trimestral
+```
+
+Temos informações de ano e trimestre nos nomes das colunas.
+
+Organizando dados financeiros complexos:
+
+```{r}
+# Transforman para o formato longo/organizado
+receita_trimestral_organizada <- receita_trimestral %>%
+  pivot_longer(
+    cols = -empresa, # todas as colunas exceto "empresa"
+    names_to = c("ano", "trimestre"), # nomes de duas novas colunas
+    names_sep = "_", # separador nos nomes das colunas
+    values_to = "receita" # nome de nova coluna para receber os valores da receita
+  )
+
+# Visualiza o resultado
+receita_trimestral_organizada
+```
+
+
+
+
+## Exercício 1
+
+**Nível Básico**
+
+Você trabalha no departamento de vendas de uma rede de lojas e recebeu 
+os dados trimestrais das vendas de cada loja em 2024. Os dados estão 
+no formato "amplo" conforme abaixo:
+
+```{r}
+vendas_lojas <- tribble(
+  ~loja, ~T1, ~T2, ~T3, ~T4,
+  "Shopping Central", 185000, 162000, 198000, 230000,
+  "Centro Comercial", 145000, 152000, 138000, 176000,
+  "Mall Express", 92000, 98000, 103000, 125000,
+  "Galeria Norte", 78000, 83000, 89000, 110000
+)
+
+# Visualiza a data frame criada
+vendas_lojas
+```
+
+Transforme estes dados para o formato "longo" (tidy), criando as variáveis 
+"trimestre" e "vendas".
+
+
+## Solução do Exercício 1
+
+```{r}
+# seu código aqui
+```
+vendas_lojas_longo<-vendas_lojas %%
+pivot_longer(
+   cols=t1:t4,
+   names-to= "Trimestre",
+   values_to+"Vendas"
+   
+)
+
+
+
+## Exercícios 2
+
+**Nível Intermediário 1**
+
+Você é analista financeiro e recebeu dados sobre os investimentos da 
+empresa em marketing digital por plataforma nos últimos 3 meses. Os dados 
+estão no seguinte formato:
+
+```{r}
+investimentos_marketing <- tribble(
+  ~plataforma, ~Jan, ~Fev, ~Mar,
+  "Google Ads", 12500, 13200, 15000,
+  "Facebook", 8700, 9300, 10500,
+  "Instagram", 7200, 8500, 9800,
+  "LinkedIn", 5400, 5800, 6500
+)
+
+# Visualiza a data frame criada
+investimentos_marketing
+```
+
+Seu gestor pediu para você transformar estes dados em um formato que permita:
+
+- Realizar análises por plataforma
+- Comparar investimentos mês a mês
+- Identificar a plataforma com maior crescimento
+
+Transforme estes dados para o formato adequado para estas análises.
+
+
+## Solução do Exercício 2
+
+```{r}
+# seu código aqui
+```
+   pivolt-longer(
+     cols=c(jan, fev, mar)
+     names_to= "mes",
+     values_to= "investimento"# nome
+     
+)
+
+
+## Exercício 3
+
+**Nível Intermediário**
+
+A diretoria solicitou uma análise detalhada de despesas e receitas 
+mensais por departamento no primeiro semestre de 2024. Os dados foram 
+enviados no seguinte formato:
+
+```{r}
+incidadores_dptos <- tribble(
+  ~departamento, ~Jan_receita, ~Jan_despesa, ~Fev_receita, ~Fev_despesa, ~Mar_receita, ~Mar_despesa, ~Abr_receita, ~Abr_despesa, ~Mai_receita, ~Mai_despesa, ~Jun_receita, ~Jun_despesa,
+  "Vendas", 120000, 85000, 125000, 82000, 135000, 90000, 122000, 88000, 140000, 91000, 145000, 94000,
+  "Marketing", 45000, 38000, 52000, 46000, 48000, 42000, 55000, 49000, 58000, 52000, 62000, 54000,
+  "Produção", 180000, 152000, 185000, 158000, 192000, 160000, 195000, 162000, 210000, 170000, 215000, 175000,
+  "RH", 28000, 25000, 28000, 25000, 30000, 26000, 29000, 26000, 31000, 27000, 32000, 28000
+)
+
+# Visualiza a data frame criada
+incidadores_dptos
+```
+
+Reorganize estes dados para o formato longo, separando corretamente as 
+informações de mês, indicador (receita/despesa) e valor.
+
+
+## Solução do Exercício 3
+
+```{r}
+# seu código aqui
+```
+
+
+
+
+
+# Dados Organizados: Potencializando Análises Administrativas 
+
+
+## Dados Longos = Dados Organizados
+
+Com os dados organizados (formato longo), podemos facilmente, 
+por exemplo:
+
+- Calcular indicadores de desempenho por categoria e período
+- Calcular indicadores de desempenho por produto e período
+- Analisar tendências mensais para decisões de estoque e marketing
+- etc.
+
+
+
+## Exemplo Típico em Administração (Wide)
+
+Vamos criar dados de vendas mensais por categoria e produto:
+
+```{r}
+# formato típico de planilhas gerenciais
+dados_vendas_wide <- tribble(
+  ~produto, ~categoria, ~Jan, ~Fev, ~Mar, ~Abr, ~Mai, ~Jun,
+  "Notebook Pro", "Eletrônicos", 45000, 38000, 42000, 47000, 52000, 49000,
+  "Smartphone X", "Eletrônicos", 38000, 41000, 40000, 39000, 45000, 50000,
+  "Monitor 24pol", "Informática", 22000, 19000, 23000, 25000, 24000, 26000,
+  "Mouse Gamer", "Informática", 12000, 14000, 13500, 15000, 16000, 17500,
+  "Mesa Office", "Mobiliário", 28000, 25000, 24000, 26500, 27000, 29000,
+  "Cadeira Ergo", "Mobiliário", 35000, 32000, 38000, 36000, 39000, 42000
+)
+
+# Visualiza a data frame que possui o formato amplo/wide
+dados_vendas_wide
+```
+
+
+Vamos organizar os dados para análise aplicando a função pivot_longer:
+
+```{r}
+# Transforma os dados para o formato longo
+dados_vendas_longo <- dados_vendas_wide %>%
+  pivot_longer(
+    cols = Jan:Jun, # colunas que serão transformadas em valores de mes
+    names_to = "mes", # nome da nova coluna
+    values_to = "valor_vendas" # nome de outra nova coluna para as vendas
+  )
+
+# Visualiza o resultado
+dados_vendas_longo
+```
+
+**Agora os dados estão organizados**:
+
+- Cada linha representa uma combinação única de produto, categoria e mês
+- As vendas mensais estão em uma única coluna (valor_vendas)
+- A informação do mês está em uma coluna própria (mes)
+
+
+
+
+## Análise 1 - Nível Básico
+
+Análise da Receita Bruta Mensa de Vendas:
+
+```{r}
+# pipeline de análise
+receita_bruta_mes <- dados_vendas_longo %>%
+  group_by(mes) %>%
+  summarize(vendas_total = sum(valor_vendas)) %>%
+  arrange(desc(vendas_total))
+
+# visualiza o resultado
+receita_bruta_mes
+```
+
+
+
+
+## Análise 2 - Nível Básico
+
+Análise das Vendas Mensais de um Produto Específico:
+
+```{r}
+# pipeline de análise
+vendas_mensais_notebookpro <- dados_vendas_longo %>%
+  filter(produto == "Notebook Pro") %>%
+  select(produto, mes, valor_vendas) %>%
+  arrange(mes)
+
+# visualiza o resultado
+vendas_mensais_notebookpro
+```
+
+
+
+
+
+## Análise 3 - Nível Básico
+
+Análise das Vendas Totais por Categoria e Mês:
+
+```{r}
+# pipeline de análise
+vendas_totais_categoria_mes <- dados_vendas_longo %>%
+  group_by(categoria, mes) %>%
+  summarize(vendas_totais = sum(valor_vendas)) %>%
+  arrange(desc(vendas_totais))
+
+# visualiza o resultado
+vendas_totais_categoria_mes
+```
+
+
+
+
+## Análise 4 - Nível Intermediário
+
+Análise do Desempenho mensal por produto:
+
+```{r}
+# pipeline de análise
+desempenho_mensal_produto <- dados_vendas_longo %>%
+  group_by(produto) %>%
+  summarize(
+    vendas_total = sum(valor_vendas),
+    vendas_media = mean(valor_vendas),
+    vendas_min = min(valor_vendas),
+    vendas_max = max(valor_vendas)
+  ) %>%
+  arrange(desc(vendas_total))
+
+# visualiza o resultado
+desempenho_mensal_produto
+```
+
+
+
+
+## Análise 4 - Tabela para Apresentação
+
+```{r}
+#| label: tbl-2
+#| tbl-cap: "Desempenho mensal de Vendas por produto"
+#| echo: false
+#| eval: true
+#| html-table-processing: none
+
+# Formata a tabela de desempenho por produto com kableExtra
+desempenho_mensal_produto %>%
+  kable(
+    # Renomeia as colunas para melhor apresentação
+    col.names = c(
+      "Produto",
+      "Vendas Totais (R$)",
+      "Média Mensal (R$)",
+      "Venda Mínima (R$)",
+      "Venda Máxima (R$)"
+    ),
+    # Formata números com 2 casas decimais
+    digits = 2,
+    # Define vírgula como separador decimal e ponto como separador de milhares
+    format.args = list(decimal.mark = ",", big.mark = ".", nsmall = 2)
+  ) %>%
+  # Aplica um estilo clássico e limpo
+  kable_classic_2(
+    # Ajusta o tamanho da fonte
+    font_size = 20,
+    # Define largura para se ajustar melhor ao slide
+    full_width = FALSE,
+    # Centraliza a tabela
+    position = "center"
+  ) %>%
+  # Destaca as colunas de valores em negrito
+  column_spec(2:5, bold = TRUE) %>%
+  row_spec(1:3, bold = T, color = "white", background = "#011f4b")
+```
+
+
+
+
+## Análise 5 - Nível Intermediário
+
+Identificando meses de pico de vendas para cada categoria:
+
+```{r}
+# Pipeline para identificar mês de melhor desempenho por categoria
+meses_pico_categoria <- dados_vendas_longo %>%
+  # Agrupa por categoria e mês
+  group_by(categoria, mes) %>%
+  # Calcula as vendas totais
+  summarize(vendas_totais = sum(valor_vendas)) %>%
+  # Filtra para o mês de maior venda
+  filter(vendas_totais == max(vendas_totais)) %>%
+  # Ordena o resultado pelas vendas totais
+  arrange(desc(vendas_totais))
+
+# visualiza o resultado
+meses_pico_categoria
+```
+
+
+
+
+## Análise 6 - Nível Intermediário
+
+Identificando meses de pior venda para cada categoria:
+
+```{r}
+# Pipeline para identificar mês de pior desempenho por categoria
+meses_pior_categoria <- dados_vendas_longo %>%
+  # Agrupa por categoria e mês
+  group_by(categoria, mes) %>%
+  # Calcula as vendas totais
+  summarize(vendas_totais = sum(valor_vendas)) %>%
+  # Filtra para o mês de menor venda
+  filter(vendas_totais == min(vendas_totais)) %>%
+  # Ordena o resultado pelas vendas totais
+  arrange(desc(vendas_totais))
+
+# visualiza o resultado
+meses_pior_categoria
+```
+
+
+
+
+## Funções which.max() e which.min()
+
+
+Localizando posições de valores máximos e mínimos
+
+As funções `which.max()` e `which.min()` são extremamente úteis em 
+análise de dados:
+
+- `which.max(x)`: Retorna a **posição** (índice) do valor máximo no vetor `x`
+- `which.min(x)`: Retorna a **posição** (índice) do valor mínimo no vetor `x`
+
+**Exemplo simples:**
+
+Criando um vetor de valores:
+
+```{r}
+vendas_mensais <- c(120, 150, 140, 160, 110, 130)
+```
+
+Qual a posição do valor máximo?
+
+```{r}
+posicao_max <- which.max(vendas_mensais)
+posicao_max
+```
+
+
+Qual o valor máximo?
+
+```{r}
+vendas_mensais[posicao_max]
+```
+
+Supondo que temos nomes para os meses:
+
+```{r}
+nomes_meses <- c("Jan", "Fev", "Mar", "Abr", "Mai", "Jun")
+```
+
+Em qual mês ocorreu a venda máxima?
+
+```{r}
+mes_maior_venda <- nomes_meses[which.max(vendas_mensais)]
+mes_maior_venda
+```
+
+Estas funções são perfeitas para encontrar **quando** ocorreram eventos 
+importantes nos seus dados (máximos, mínimos, picos) em vez de apenas 
+quais foram os valores.
+
+
+
+
+
+## Análise 7 - Nível Avançado
+
+Identificando os Meses de Maior e Menor Venda por Produto:
+
+```{r}
+# Pipeline de análise para identificar os meses de pico e vale por produto
+resumo_comparativo_produto <- dados_vendas_longo %>%
+  # Agrupa os dados por produto para analisar cada um separadamente
+  group_by(produto) %>%
+  # Para cada produto, calculamos:
+  summarize(
+    # 1. Qual o mês da maior venda:
+    # - which.max(valor_vendas) encontra a POSIÇÃO da maior venda
+    # - mes[which.max(valor_vendas)] seleciona o nome do mês de maior venda
+    melhor_mes = mes[which.max(valor_vendas)],
+    # 2. Qual foi o valor da maior venda
+    maior_venda = max(valor_vendas),
+    # 3. Qual o mês da menor venda (mesma lógica do melhor mês)
+    pior_mes = mes[which.min(valor_vendas)],
+    # 4. Qual foi o valor da menor venda
+    menor_venda = min(valor_vendas)
+  )
+
+# Visualiza o resultado
+resumo_comparativo_produto
+```
+
+**Explicação do código:**
+
+1. Primeiro agrupamos por produto para realizar a análise para 
+   cada item
+   
+2. A função `which.max(valor_vendas)` retorna a posição (índice) do 
+  valor máximo
+  
+3. Ao usar `mes[which.max(valor_vendas)]`, extraímos o nome do mês na 
+   posição com valor máximo
+   
+4. Este tipo de análise é essencial para identificar padrões sazonais 
+de produtos
+
+Este relatório permite identificar rapidamente quais meses foram melhores 
+e piores para cada produto - informação valiosa para planejamento de 
+estoque e promoções.
+
+Assim, esta análise permite otimizar o planejamento de estoque e 
+ações promocionais sazonais.
+
+
+
+## Análise 7 - Tabela para Apresentação
+
+```{r}
+#| label: tbl-7
+#| tbl-cap: "Meses de Maior e Menor Venda por Produto"
+#| echo: false
+#| eval: true
+#| html-table-processing: none
+
+# Formata a tabela comparativa com kableExtra
+resumo_comparativo_produto %>%
+  kable(
+    # Renomeia as colunas para melhor apresentação
+    col.names = c(
+      "Produto", 
+      "Melhor Mês", 
+      "Maior Venda (R$)", 
+      "Pior Mês", 
+      "Menor Venda (R$)"
+    ),
+    # Formata números com 2 casas decimais
+    digits = 2,
+    # Define vírgula como separador decimal e ponto como separador de milhares
+    format.args = list(decimal.mark = ",", big.mark = ".", nsmall = 2)
+  ) %>%
+  # Aplica um estilo clássico e limpo
+  kable_paper(
+    # Ajusta o tamanho da fonte
+    font_size = 22,
+    # Define largura para se ajustar melhor ao slide
+    full_width = FALSE,
+    # Centraliza a tabela
+    position = "center"
+  ) %>%
+  # Destaca as colunas de valores monetários em negrito
+  column_spec(c(3, 5), bold = TRUE) %>% 
+  row_spec(4, bold = T, color = "white", background = "#D7261E")
+```
+
+
+
+
+## Reflexão: Dados em Seu Ambiente de Trabalho
+
+Considere os dados com os quais você já trabalha ou espera trabalhar 
+em sua carreira:
+
+1. **Que tipos** de dados desorganizados você encontra ou espera encontrar?
+
+   - Relatórios gerenciais? 
+   - Planilhas financeiras?
+   - Arquivos de sistemas ERP/CRM?
+
+2. **Como** esses dados poderiam ser melhor organizados para análise?
+
+   - Quais são as verdadeiras "observações" nesses dados?
+   - Quais são as verdadeiras "variáveis"?
+
+3. **Quais insights de negócio** você poderia extrair se esses dados 
+estivessem organizados adequadamente?
+
+   - Padrões temporais?
+   - Comparações entre unidades/produtos/regiões?
+   - Correlações entre diferentes métricas?
+
+4. **Como você aplicaria** o conhecimento desta aula em um exemplo 
+concreto do seu interesse profissional?
+
+**Dica para sua carreira**: Manter um repositório pessoal de códigos R 
+para transformações comuns que você encontra no seu trabalho pode 
+economizar horas de trabalho repetitivo no futuro.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

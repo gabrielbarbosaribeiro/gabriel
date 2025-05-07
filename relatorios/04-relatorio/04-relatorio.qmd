@@ -1,0 +1,1096 @@
+---
+title: "Introdução à Manipulação de Dados com o Pacote dplyr"
+subtitle: "Disciplina: Introducão à Ciência de Dados"
+lang: pt-BR
+author: gabriel barbosa ribeiro
+date: 2025-04-23
+format: 
+  html:
+    theme: cosmo
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  message: false
+  warning: false
+---
+
+```{r}
+#| label: setup
+#| echo: false
+
+# Carrega os pacotes necessários
+library(tidyverse) # Inclui o dplyr e outros 8 pacotes
+library(gapminder) # Conjunto de dados para os exemplos
+```
+
+
+
+#  Objetivos de Aprendizagem
+
+Neste documento, vamos aprender:
+
+- O que é o pacote dplyr e sua importância na manipulação de dados
+
+- Como usar as seis principais funções do pacote dplyr:
+
+  - `select()`: para selecionar colunas (variáveis)
+  - `filter()`: para filtrar linhas (observações)
+  - `mutate()`: para criar ou modificar colunas
+  - `group_by()`: para agrupar dados por categorias
+  - `summarize()`: para calcular estatísticas resumidas
+  - `arrange()`: para ordenar resultados
+  
+- Como combinar estas funções usando o operador pipe (`%>%`)
+
+
+
+## O que é o dplyr?
+
+- O dplyr é umdos pacotes principais do tidyverse, criado por 
+Hadley Wickham
+
+- Seu nome vem de "*data plier*" (alicate de dados) - uma ferramenta 
+para manipular dados
+
+- Foi projetado seguindo a filosofia "*tidy data*" (dados 
+organizados) - cada variável é uma coluna, cada observação é uma linha
+
+- É escrito em C++ para performance otimizada
+
+- Permite manipulação de dados de forma consistente, clara e encadeada
+
+
+
+## Operações Comuns em Análise de Dados
+
+- Muitas vezes precisamos **filtrar** somente certas linhas 
+(**observações** ) de uma data frame. 
+
+- Muitas vezes precisamos **selecionar** somente certas colunas 
+(**variáveis**) de uma data frame.
+
+- Muitas vezes precisamos **agrupar** os dados por uma determinada(s)
+variável(s) categórica.
+
+- Muitas vezes precisamos **calcular estatísticas descritivas** para 
+esses subconjuntos de dados (função `summarize`). 
+
+
+
+
+## Por que usar o dplyr?
+
+- Usando R base:
+
+```{r}
+# pib per capita médio dos países do continente americano
+mean(gapminder$gdpPercap[gapminder$continent == "Americas"])
+```
+
+- Usando o pacote dplyr
+
+```{r}
+# pib per capita médio dos países do continente americano
+gapminder %>%
+  filter(continent == "Americas") %>%
+  summarize(mean(gdpPercap))
+```
+
+
+Agora, vamos calcular a média de PIB per capita para países asiáticos 
+com população > 50 milhões em 2007.
+
+Usando R base:
+
+```{r}
+mean(gapminder$gdpPercap[
+  gapminder$continent == "Asia" & 
+  gapminder$pop > 50000000 & 
+  gapminder$year == 2007
+])
+```
+
+
+Com dplyr e o operador pipe:
+
+```{r}
+gapminder %>%
+  filter(
+    continent == "Asia",
+    pop > 50000000,
+    year == 2007
+  ) %>%
+  summarize(mean(gdpPercap))
+```
+
+
+
+## Fluxo de trabalho com dplyr
+
+O fluxo típico de uma análise de dados com dplyr segue este padrão:
+
+1. **Importar** dados (com pacotes readr, readxl)
+2. **Filtrar** observações (função `filter`)
+3. **Selecionar** variáveis (função `select`)
+4. **Transformar** dados (função `mutate`)
+5. **Agrupar** dados (função `group_by`)
+6. **Resumir** informações (função `summarize`)
+7. **Ordenar** resultados (função `arrange`)
+
+
+
+## Um Exemplo Prático Completo
+
+Obtendo uma versão inicial de uma tabela informativa sobre expectativa 
+de vida por continente:
+
+```{r}
+# Um fluxo completo de análise com dplyr
+relatorio_expectativa <- gapminder %>%
+  # Filtra apenas os dados de 2007
+  filter(year == 2007) %>%
+  # Agrupa por continente
+  group_by(continent) %>%
+  # Calcula estatísticas resumidas
+  summarize(
+    expectativa_media = mean(lifeExp),
+    expectativa_minima = min(lifeExp),
+    expectativa_maxima = max(lifeExp),
+    num_paises = n()
+  ) %>%
+  # Ordena do maior para o menor
+  arrange(desc(expectativa_media))
+
+# Visualiza o resultado final
+relatorio_expectativa
+```
+
+Este exemplo demonstra como um conjunto de funções do dplyr pode 
+ser combinado para transformar dados brutos em uma tabela
+informativa com apenas algumas linhas de código.
+
+Agora vamos entender em detalhes cada uma dessas funções e como 
+aplicá-las em diferentes contextos de análise de dados.
+
+
+
+
+
+# Dados dos Exemplos 
+
+## Pacote gapminder
+
+- O pacote gapminder da linguagem R contém uma data frame também chamada 
+gapminder. 
+
+- A df gapminder fornece informações detalhadas sobre indicadores 
+socioeconômicos reais de vários países ao longo do tempo. 
+
+- Este conjunto de dados é muito utilizado no ensino da linguagem R e 
+de métodos estatísticos.
+
+
+
+## Data Frame gapminder: Fase 1 (CRISP-DM)
+
+A data frame gapminder contém as seguintes variáveis:
+
+:::: {style="font-size: 90%;"}
+| Variável    | Descrição                                                   |
+|-------------|-------------------------------------------------------------|
+| `country`   | nome do país.                                               |
+| `continent` | continente ao qual o país pertence.                         |
+| `year`      | ano da observação.                                          |
+| `lifeExp`   | expectativa de vida ao nascer, em anos.                     |
+| `pop`       | população total do país.                                    |
+| `gdpPercap` | PIB per capita, ajustado pelas diferenças de poder de compra. |
+
+
+
+## Data Frame gapminder: Fase 2 (CRISP-DM)
+
+Para obter uma visão geral da estrutura da df gapminder, podemos usar 
+a função glimpse do pacote dplyr:
+
+```{r}
+# visualizando a estrutura dos dados
+dplyr::glimpse(gapminder)
+```
+
+
+## Data Frame gapminder
+
+Mostrando que o gapminder já está no formato tidy: 
+
+- Cada linha é uma observação (país-ano)
+- Cada coluna é uma variável
+- Cada célula é um valor único
+
+```{r}
+# exibe as 6 primeiras linhas do objeto gapminder
+head(gapminder)
+```
+
+
+```   {r}
+# exibe as 6 primeiras linhas do objeto  gaominder   
+tail(gapminder)
+
+```
+
+# Função select() 
+
+
+## O que é a função select()?
+
+- A função `select()` permite escolher quais **variáveis** 
+(colunas) você quer manter ou remover de uma data frame
+
+- Enquanto `select()` trabalha com **colunas** (variáveis), 
+`filter()` trabalha com **linhas** (observações), 
+  
+- É essencial para simplificar seus dados, focando apenas nas variáveis relevantes para sua análise
+
+
+
+## Exemplo: Análise Financeira Simplificada
+
+Imagine que você é um analista financeiro internacional e precisa 
+preparar um relatório sobre PIB:
+
+```{r}
+# Seleciona apenas as variáveis relevantes para análise financeira
+dados_financeiros <- gapminder %>%
+  select(country, year, gdpPercap)
+
+# Visualiza as 6 primeiras linhas do objeto
+head(dados_financeiros)
+```
+
+**Interpretação:** Este código seria equivalente a extrair apenas os 
+dados financeiros relevantes (país, ano e PIB per capita) de uma 
+grande base de dados para uma análise específica de desempenho 
+econômico.
+
+
+
+## Técnicas de Seleção Avançadas
+
+
+É possível utilizar diversas formas de selecionar variáveis com 
+a função select:
+
+```{r}
+# Seleciona variáveis por inclusão
+gapminder %>% select(country, year, gdpPercap)
+```
+
+
+```{r}
+# Seleciona variáveis por exclusão (com sinal de menos)
+gapminder %>% select(-continent, -lifeExp)
+```
+
+
+```{r}
+# Seleciona variáveis em sequência
+gapminder %>% select(country:pop)
+```
+
+
+```{r}
+# Selecionarvariáveis que começam com determinado texto
+gapminder %>% select(starts_with("c"))
+```
+
+
+```{r}
+# Seleciona variáveis que terminam com determinado texto
+gapminder %>% select(ends_with("p"))
+```
+
+
+```{r}
+# Selecionar variáveis que contêm determinado texto
+gapminder %>% select(contains("exp"))
+```
+
+Estas técnicas são muito úteis quando você trabalha com:
+
+- Grandes conjuntos de dados com dezenas ou centenas de variáveis
+- Planilhas de dados financeiros onde precisa focar em determinadas métricas
+- Relatórios onde precisa apresentar apenas informações específicas
+
+
+
+## Exemplo: Salvando o resultado
+
+- Se quisermos remover apenas a variável **continent**, podemos usar 
+a sintáxe abaixo e salvar o resultado em outro objeto:
+
+```{r}
+variaveis_selecionadas <- select(gapminder, -continent)
+
+# visualiza o objeto que contém o resultado final
+variaveis_selecionadas
+```
+
+
+
+
+## Pacote dplyr e o operador pipe `%>%`
+
+- Nos slides anteriores, usamos a sintáxe 'normal' da linguagem R. 
+
+- Mas o ponto forte do dplyr está na **combinação** de várias funções 
+usando o **operador pipe** `%>%`. 
+
+- Vamos analisar a gramática do uso de funções do dplyr combinadas 
+com o operador `%>%`. 
+
+- Atalho para inserir o operador pipe: **Ctrl + shift + M**
+
+
+
+## Analogia
+
+Uma linha de montagem onde cada função faz uma operação nos dados
+
+```{r}
+gapminder %>% # Pegue os dados gapminder, então...
+  filter(year == 2007) %>% # Filtre para apenas o ano 2007, então...
+  group_by(continent) %>% # Agrupe por continente, então...
+  summarize( # Calcule resumos:
+    mean(lifeExp), # expectativa de vida média
+    sum(pop) # população total 
+  )
+```
+
+
+
+## Dica
+
+Nomeie os resumos calculados com summarize:
+
+```{r}
+gapminder %>% # Pegue os dados gapminder, então...
+  filter(year == 2007) %>% # Filtre para apenas o ano 2007, então...
+  group_by(continent) %>% # Agrupe por continente, então...
+  summarize( # Calcule resumos:
+    exp_vida_media = mean(lifeExp), # expectativa de vida média
+    populacao_total = sum(pop) # população total
+  )
+```
+
+
+
+## Função select() e o Operador Pipe
+
+```{r}
+variaveis_selecionadas <- gapminder %>%
+  dplyr::select(year, country, gdpPercap)
+
+variaveis_selecionadas
+```
+
+Vamos entender o código:
+
+1. Primeiro invocamos a df gapminder e a passamos, usando o operador
+pipe `%>%`, para a próxima etapa, que é a função select(). 
+
+2. Neste caso, não especificamos qual df usamos na 
+função select(), porque que ela obtém essa informação do pipe 
+anterior. 
+
+3. Salvamos o resultado no objeto `variaveis_selecionadas`
+
+
+
+## Exercícios Práticos com select()
+
+**Nível 1: Primeiros Passos**
+
+1. Complete o código abaixo para selecionar apenas o país, o ano e 
+a expectativa de vida:
+
+```{r}
+dados_expectativa <- gapminder %>%
+  select(country, year, gdpPercap )
+```
+
+
+2. Escreva o código para selecionar todas as variáveis EXCETO população 
+e PIB per capita.
+
+```{r}
+# seu código aqui
+```
+
+
+**Nível 2: Técnicas Avançadas com select()**
+
+3. Complete o código abaixo para selecionar apenas as variáveis que 
+começam com a letra "c":
+
+```{r}
+variaveis_com_c <- gapminder %>%
+  select(___(___))
+```
+
+
+```{r}
+# seu código aqui
+```
+
+
+
+4. Escreva o código para selecionar todas as variáveis desde "country" 
+até "pop" (em sequência na tabela).
+
+```{r}
+# seu código aqui
+```
+
+
+**Desafio:** Crie um código que selecione variáveis usando dois métodos 
+diferentes na mesma instrução:
+
+- Todas as variáveis que contêm a letra "p" OU
+- Todas as variáveis que terminam com "p"
+
+
+```{r}
+# seu código aqui
+```
+
+
+**Dica:** Lembre-se que você pode combinar seleções com vírgulas e use o 
+atalho Ctrl+Shift+M para inserir o operador pipe (%>%).
+
+
+
+
+
+# Função dplyr::filter()
+
+
+## O que é a função filter()?
+
+- A função `filter()` permite **filtrar subconjuntos de observações** 
+(linhas) que atendem determinadas condições ou critérios.
+
+- É uma das funções mais utilizadas na análise de dados para criar 
+  subconjuntos específicos dos dados
+  
+- Pense nela como um "filtro" que deixa passar apenas as observações 
+  que atendem aos critérios que você definir
+
+- Imagine que você tem uma planilha de vendas e quer analisar apenas 
+as vendas:
+
+  * de um produto específico
+  * acima de determinado valor
+  * em uma região específica
+  * em um período específico
+
+- A função `filter()` permite fazer essa filtragem de forma rápida e precisa
+
+
+
+## Exemplo básico: Análise de vendas por continente
+
+Imagine que a data frame `gapminder` representa dados de filiais de uma 
+empresa multinacional:
+
+```{r}
+# Filtra apenas países das Américas
+# como se fossem filiais da região Américas
+filiais_americas <- gapminder %>%
+  filter(continent == "Americas")
+
+# Visualiza as primeiras 6 linhas do resultado
+head(filiais_americas)
+```
+
+**Interpretação:** Este filtro seria equivalente a selecionar 
+apenas dados de filiais localizadas nas Américas para uma análise 
+regional de desempenho.
+
+
+
+## Múltiplas condições com filter()
+
+Há duas maneiras principais de combinar condições:
+
+```{r}
+# Método 1: Usando o operador & (E lógico) - equivalente ao método 1
+europeus_2007_alt <- gapminder %>%
+  filter(continent == "Europe" & year == 2007)
+
+# visualiza o resultado final 
+europeus_2007_alt 
+```
+
+
+```{r}
+# Método 2: Usando o operador | (OU lógico)
+europa_ou_asia <- gapminder %>%
+  filter(continent == "Europe" | continent == "Asia")
+
+# visualiza o resultado final 
+europa_ou_asia
+```
+
+
+
+
+
+## Filtrando com operadores relacionais
+
+
+```{r}
+# Países com alta expectativa de vida (maior que 80 anos)
+alta_exp_vida <- gapminder %>%
+  filter(lifeExp > 80)
+
+# visualiza o resultado final 
+alta_exp_vida 
+```
+
+
+
+```{r}
+# Países com PIB per capita abaixo de 500 dólares
+baixo_pib <- gapminder %>%
+  filter(gdpPercap < 500)
+
+# visualiza o resultado final 
+baixo_pib 
+```
+
+
+```{r}
+# Anos diferentes de 2002
+nao_2002 <- gapminder %>%
+  filter(year != 2002)
+
+# visualiza o resultado final 
+nao_2002
+```
+
+Utilize operadores relacionais para:
+
+- Encontrar valores acima/abaixo de limites importantes
+- Excluir períodos ou categorias específicas
+- Identificar casos extremos ou outliers
+
+
+
+
+
+## Combinando filter() com outras funções
+
+```{r}
+# Países europeus em 2007, mostrando apenas país e expectativa de vida
+europeus_lifeExp_2007 <- gapminder %>%
+  filter(continent == "Europe", year == 2007) %>%
+  select(country, lifeExp)
+
+# Ordenando o resultado por expectativa de vida (decrescente)
+europeus_lifeExp_2007_ordenado <- gapminder %>%
+  filter(continent == "Europe", year == 2007) %>%
+  select(country, lifeExp) %>%
+  arrange(desc(lifeExp))
+
+# visualiza as 6 primeiras linhas do objeto 
+head(europeus_lifeExp_2007_ordenado, 30)
+```
+
+Ordem correta das operações:
+
+1. Comece com **filter()** 
+2. Use **select()** depois de filter
+3. Se inverter a ordem, a função filter() pode falhar se você removeu 
+colunas necessárias
+
+Lembre-se: primeiro **filter()**, depois **select()**!
+
+
+
+
+## Exemplo Completo Comum
+
+Países europeus com alta expectativa de vida em 2007?
+
+```{r}
+resultado_final <- gapminder %>%
+  # Filtra por continente, ano e expectativa de vida
+  filter(continent == "Europe", year == 2007, lifeExp > 78) %>%
+  # Seleciona variáveis de interesse
+  select(country, lifeExp, gdpPercap) %>%
+  # Ordena por expectativa de vida (decrescente)
+  arrange(desc(lifeExp))
+
+# Mostrar resultados
+resultado_final
+```
+
+Observe o fluxo de análise:
+
+1. Filtramos os dados com critérios específicos
+2. Selecionamos apenas as variáveis de interesse
+3. Ordenamos os resultados para facilitar a interpretação
+4. Todo o processo forma um "pipeline" de análise limpo e legível
+
+
+
+
+
+## Exercícios Práticos com filter()
+
+**Nível 1: Primeiros Passos com filter()**
+
+1. Complete o código abaixo para filtrar apenas os países da América 
+do Sul no ano de 2007:
+
+```{r}
+paises_america_2007 <- gapminder %>%
+  filter(continent == "___", year == ___)
+```
+
+
+2. Filtre a data frame gapminder para mostrar apenas os dados do Brasil:
+
+```{r}
+# seu codigo aqui
+```
+
+
+**Nível 2: Combinando Condições**
+
+3. Crie um filtro para encontrar países que atendam a TODAS estas condições:
+
+- Pertencem à Ásia
+- Têm população acima de 50 milhões
+- Dados do ano 2007
+
+```{r}
+# seu codigo aqui
+```
+
+
+4. **Desafio:** Encontre países com expectativa de vida acima de 75 anos, 
+mas PIB per capita abaixo de 10.000 dólares em 2007.
+
+```{r}
+# seu codigo aqui
+```
+
+
+
+
+
+# Função mutate() 
+
+
+## O que é a função mutate()?
+
+- A função `mutate()` permite **criar novas variáveis** ou 
+  **modificar variáveis existentes**
+
+- Enquanto `filter()` seleciona linhas e `select()` seleciona colunas, 
+  `mutate()` **adiciona ou modifica colunas**
+
+- É como ter uma "calculadora" que cria novas informações a partir dos 
+  dados existentes
+
+- Ideal para cálculos como: percentuais, totais, médias, categorias, etc.
+
+
+
+## Aplicação: Análise de Vendas
+
+Imagine que a data frame `gapminder` contém dados de vendas 
+globais da sua empresa:
+
+```{r}
+# Cria variáveis para análise de vendas
+vendas_analise <- gapminder %>%
+  filter(year == 2007) %>%  # Filtra dados somente de 2007
+  mutate(
+    # PIB total representa a receita total da região
+    receita_total = gdpPercap * pop,
+    # Receita em milhões (para facilitar a leitura)
+    receita_milhoes = receita_total / 1000000,
+    # Indicador de destaque (regiões com alta receita por pessoa)
+    destaque = gdpPercap > 20000
+  ) %>%
+  # Vamos visualizar apenas algumas colunas e 5 linhas
+  select(country, receita_milhoes, gdpPercap, destaque) %>%
+  head(5)
+
+vendas_analise
+```
+
+**Interpretação administrativa:** Este tipo de transformação é usado 
+diariamente nas empresas para converter dados brutos em métricas de 
+negócios úteis para tomada de decisão.
+
+
+
+## Mutações Simples
+
+As transformações mais comuns envolvem operações aritméticas básicas:
+
+```{r}
+# Operações aritméticas básicas com mutate()
+gapminder %>%
+  filter(country == "Brazil", year >= 2000) %>%
+  mutate(
+    # Adição: adiciona um valor fixo
+    pop_ajustada = pop + 1000000,
+    # Multiplicação: multiplica por um fator
+    gdp_reais = gdpPercap * 5.2,  # Convertendo para reais
+    # Divisão: divide para mudar a escala 
+    pop_milhoes = pop / 1000000   # População em milhões
+  ) %>%
+  select(year, pop, pop_ajustada, pop_milhoes, gdpPercap, gdp_reais)
+```
+
+**Dica:** As operações mais utilizadas em análises de negócios são 
+multiplicação (para fatores, taxas, conversões) e divisão (para mudar 
+escalas e calcular proporções).
+
+
+
+## Criando categorias com ifelse()
+
+A função `ifelse()` permite criar novas variáveis categóricas baseadas 
+em condições:
+
+Como funciona: `ifelse(condição, valor_se_verdadeiro, valor_se_falso)`
+
+```{r}
+# Criando categorias com ifelse
+paises_categorizados <- gapminder %>%
+  filter(year == 2007) %>%
+  mutate(
+    nivel_desenvolvimento = ifelse(gdpPercap > 10000,
+      "Desenvolvimento Alto",
+      "Desenvolvimento Baixo"
+    )
+  ) %>%
+  select(country, gdpPercap, nivel_desenvolvimento) %>%
+  head(6)
+
+paises_categorizados
+```
+
+- É como dizer: "SE o PIB per capita for maior que 10.000, então 
+classifique como 'Desenvolvimento Alto', SENÃO classifique como 
+'Desenvolvimento Baixo'"
+
+
+
+## Criando KPIs com mutate() e ifelse() 
+
+```{r}
+gapminder %>%
+ filter(year == 2007) %>%
+ mutate(
+   pib_total = gdpPercap * pop,  # PIB total
+   pib_percentual_global = (pib_total/sum(pib_total))*100, # % do PIB global
+   performance = ifelse(gdpPercap > mean(gdpPercap), 
+                       "Acima da média", 
+                       "Abaixo da média")
+ ) %>% 
+ select(country, pib_total, pib_percentual_global, performance)
+```
+
+Isso mostra como transformar dados brutos em informações gerenciais.
+
+
+
+## Múltiplas Categorias com case_when()
+
+`case_when()` é como um "sistema de classificação" para criar 
+categorias mais complexas:
+
+```{r}
+# Exemplo de múltiplas categorias
+paises_classificados <- gapminder %>%
+  filter(year == 2007) %>%
+  mutate(
+    classe_desenvolvimento = case_when(
+      gdpPercap < 2000 ~ "Baixo",
+      gdpPercap < 10000 ~ "Médio",
+      gdpPercap >= 10000 ~ "Alto"
+    )
+  ) %>%
+  select(country, gdpPercap, classe_desenvolvimento) %>%
+  head(6)
+
+paises_classificados
+```
+
+**Como funciona:**
+
+- Cada linha representa uma condição: `condição ~ "valor a atribuir"`
+- As condições são verificadas em ordem (de cima para baixo)
+- Quando uma condição é verdadeira, o valor correspondente é atribuído
+
+
+
+## Exercícios Práticos com mutate()
+
+**Nível 1: Começando com mutate()**
+
+1. Complete o código abaixo para criar uma nova variável que converta 
+a população para milhões:
+
+```{r}
+gapminder %>%
+  mutate(pop_em_milhoes = ___)
+```
+
+
+2. Crie uma nova variável que calcule o "PIB total" 
+(PIB per capita × população) para cada país.
+
+```{r}
+# seu codigo aqui
+```
+
+
+
+**Nível 2: Aplicando categorias**
+
+3. Usando `ifelse()`, crie uma variável chamada `economia_grande` que 
+seja "Sim" quando a população for maior que 50 milhões e "Não" 
+caso contrário.
+
+```{r}
+# seu codigo aqui
+```
+
+
+4. **Desafio**: Usando dados de 2007, crie uma variável que classifique 
+os países em três categorias baseadas na expectativa de vida:
+
+- "Baixa": menos de 60 anos
+- "Média": entre 60 e 75 anos
+- "Alta": mais de 75 anos
+
+```{r}
+# seu codigo aqui
+```
+
+
+
+
+
+# Função group_by() e summarize() 
+
+
+## O que são as funções group_by() e summarize()?
+
+- A função `group_by()` permite **agrupar dados** por uma ou mais 
+variáveis categóricas
+  
+- A função `summarize()` (ou `summarise()`) permite **calcular 
+estatísticas resumidas** para cada grupo
+
+- Estas funções geralmente trabalham juntas como uma ferramenta 
+poderosa para análise
+
+- É como criar "subtotais" ou "relatórios consolidados" por 
+categorias (ex: vendas por região, despesas por departamento)
+
+
+
+## Exemplo: Análise Financeira por Continente
+
+Imagine que você é um analista financeiro e precisa preparar 
+um relatório executivo comparando regiões:
+
+```{r}
+# Cria um relatório de PIB médio por continente
+relatorio_continentes <- gapminder %>%
+  filter(year == 2007) %>%  # Filtra para dados mais recentes
+  group_by(continent) %>%   # Agrupa por continente
+  summarize(
+    PIB_medio = mean(gdpPercap),         # Média do PIB per capita
+    Total_populacao = sum(pop),          # População total
+    Paises_analisados = n(),             # Número de países
+    PIB_minimo = min(gdpPercap),         # PIB mínimo
+    PIB_maximo = max(gdpPercap)          # PIB máximo
+  ) %>%
+  arrange(desc(PIB_medio))  # Ordena do maior para o menor PIB médio
+
+# Visualiza o resultado
+relatorio_continentes
+```
+
+**Interpretação** Este tipo de relatório consolidado por 
+região é crítico para análises comparativas entre mercados e para 
+apresentações executivas. Mostra claramente as estatísticas-chave 
+para cada grupo (continente), facilitando comparações e decisões 
+estratégicas.
+
+
+
+## Agrupando por Múltiplas Variáveis
+
+
+```{r}
+# Análise de expectativa de vida por continente e ano
+tendencias_por_continente <- gapminder %>%
+  group_by(continent, year) %>%  # Agrupa por DUAS variáveis
+  summarize(
+    expectativa_vida_media = mean(lifeExp),
+    paises_analisados = n()
+  ) %>%
+  arrange(continent, year)
+
+# Mostra resultados parciais
+tendencias_por_continente %>% 
+  filter(continent == "Americas") %>%
+  head(3)
+```
+
+**Contexto empresarial:** Este tipo de análise é comum em:
+
+- Relatórios de vendas por região e trimestre
+- Análise de desempenho por departamento e mês
+- Monitoramento de métricas por produto e canal de vendas
+
+
+
+## Exercícios Práticos com group_by() e summarize()
+
+**Nível 1: Primeiros Passos**
+
+1. Complete o código abaixo para calcular a média de expectativa de 
+vida por continente:
+
+```{r}
+expectativa_por_continente <- gapminder %>%
+  group_by(___) %>%
+  summarize(expectativa_media = ___(___))
+```
+
+
+2. Calcule a população total por continente no ano de 2007.
+
+```{r}
+# seu codigo aqui
+```
+
+
+**Nível 2: Análise de Negócios**
+
+3. Imagine que cada país representa uma filial da sua empresa. Crie uma 
+tabela que mostre, para cada continente:
+
+- O número de "filiais" (países)
+- O PIB per capita médio (indicador de desempenho)
+- O PIB per capita da melhor "filial" (máximo)
+
+```{r}
+# seu codigo aqui
+```
+
+
+4. **Desafio:** Crie uma tabela que mostre a evolução da expectativa 
+de vida média do continente americano ao longo dos anos (dica: agrupe
+por ano, filtre para mostrar apenas as Américas).
+
+```{r}
+# seu codigo aqui
+```
+
+
+
+
+
+# Função arrange()
+
+- A função `arrange()` ordena as linhas (observações) de uma data frame 
+com base nos valores de uma ou mais colunas (variáveis)
+   
+- Por padrão, organiza em ordem **crescente** (do menor para o maior)
+
+- Use `desc()` para ordenar em ordem decrescente (do maior para o menor)
+
+
+
+## Aplicação: Análise de Desempenho
+
+Imagine que você é um analista de mercado e precisa identificar 
+rapidamente os países mais promissores para expansão:
+
+```{r}
+# Criando um ranking de países por PIB per capita em 2007
+ranking_paises <- gapminder %>%
+  filter(year == 2007) %>%                # Filtra dados apenas de 2007
+  select(country, continent, gdpPercap) %>% # Seleciona colunas relevantes
+  arrange(desc(gdpPercap)) %>%            # Ordena do maior para o menor PIB
+  head(6)                                # Mostra os 10 primeiros resultados
+
+# Visualiza o resultado
+ranking_paises
+```
+
+**Interpretação** Este tipo de ordenação é relevante em 
+análises de mercado para identificar rapidamente os países mais ricos 
+(potenciais mercados premium) ou para encontrar as regiões que precisam 
+de mais atenção (ordenando do menor para o maior).
+
+
+
+## Exercícios Práticos
+
+**Nível 1: Primeiros Passos**
+
+1. Complete o código abaixo para ordenar os países por expectativa 
+de vida (do maior para o menor):
+
+```{r}
+paises_ordenados <- gapminder %>%
+  filter(year == 2007) %>%
+  arrange(___(___))
+```
+
+
+2. Escreva um código para listar os 5 países com menor PIB per capita em 2007.
+
+```{r}
+# seu codigo aqui
+```
+
+
+**Nível 2: Aplicação em Negócios**
+
+3. Imagine que você trabalha no departamento internacional de uma 
+empresa. Crie uma lista dos países das Américas ordenados por 
+população (do maior para o menor) em 2007.
+
+```{r}
+# seu codigo aqui
+```
+
+
+4. **Desafio:** Crie um ranking dos continentes baseado na expectativa 
+de vida média de seus países em 2007. Use group_by(), summarize() e arrange().
+
+```{r}
+# seu codigo aqui
+```
+
+
+
+
+
+

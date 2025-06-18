@@ -2,7 +2,7 @@
 title: "Caso Junglivet Whisky Company"
 subtitle: "Introdução à CRISP-DM, RStudio, Sistema Quarto e Linguagem R"
 lang: pt-BR
-author: "Seu Nome"
+author: "Gabriel Barbosa Ribeiro"
 date: 2025-04-02
 format: 
   html:
@@ -600,7 +600,5 @@ didático.
 Estas habilidades são fundamentais não apenas para projetos acadêmicos, 
 mas também para aplicações profissionais em ciência de dados e análise 
 de negócios no mundo atual da economia de dados.
-
-
 
 

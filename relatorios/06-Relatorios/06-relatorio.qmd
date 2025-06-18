@@ -1,0 +1,477 @@
+---
+title: "Organização de Dados com o Pacote tidyr"
+subtitle: "Continuação do Relatório 5"
+lang: pt-BR
+author: "Gabriel Barbosa"
+date: 2025-05-09
+format: 
+  html:
+    theme: flatly
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  message: false
+  warning: false
+---
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura exibição de números
+options(digits = 8, scipen = 999)
+
+# carrega pacotes
+library(tidyverse)
+library(gapminder)
+library(kableExtra)
+```
+
+
+
+# Dados Organizados: Potencializando Análises Administrativas 
+
+
+## Dados Longos = Dados Organizados
+
+Com os dados organizados (formato longo), podemos facilmente, 
+por exemplo:
+
+- Calcular indicadores de desempenho por categoria e período
+- Calcular indicadores de desempenho por produto e período
+- Analisar tendências mensais para decisões de estoque e marketing
+- etc.
+
+
+
+## Exemplo Típico em Administração (Wide)
+
+Vamos criar dados de vendas mensais por categoria e produto:
+
+```{r}
+# formato típico de planilhas gerenciais
+dados_vendas_wide <- tribble(
+  ~produto, ~categoria, ~Jan, ~Fev, ~Mar, ~Abr, ~Mai, ~Jun,
+  "Notebook Pro", "Eletrônicos", 45000, 38000, 42000, 47000, 52000, 49000,
+  "Smartphone X", "Eletrônicos", 38000, 41000, 40000, 39000, 45000, 50000,
+  "Monitor 24pol", "Informática", 22000, 19000, 23000, 25000, 24000, 26000,
+  "Mouse Gamer", "Informática", 12000, 14000, 13500, 15000, 16000, 17500,
+  "Mesa Office", "Mobiliário", 28000, 25000, 24000, 26500, 27000, 29000,
+  "Cadeira Ergo", "Mobiliário", 35000, 32000, 38000, 36000, 39000, 42000
+)
+
+# Visualiza a data frame que possui o formato amplo/wide
+dados_vendas_wide
+```
+
+
+Vamos organizar os dados para análise aplicando a função pivot_longer:
+
+```{r}
+# Transforma os dados para o formato longo
+dados_vendas_longo <- dados_vendas_wide %>%
+  pivot_longer(
+    cols = Jan:Jun, # colunas que serão transformadas em valores de mes
+    names_to = "mes", # nome da nova coluna
+    values_to = "valor_vendas" # nome de outra nova coluna para as vendas
+  )
+
+# Visualiza o resultado
+dados_vendas_longo
+```
+
+**Agora os dados estão organizados**:
+
+- Cada linha representa uma combinação única de produto, categoria e mês
+- As vendas mensais estão em uma única coluna (valor_vendas)
+- A informação do mês está em uma coluna própria (mes)
+
+
+
+
+## Análise 1 - Nível Básico
+
+Análise da Receita Bruta Mensa de Vendas:
+
+```{r}
+# pipeline de análise
+receita_bruta_mes <- dados_vendas_longo %>%
+  group_by(mes) %>%
+  summarize(vendas_total = sum(valor_vendas)) %>%
+  arrange(desc(vendas_total))
+
+# visualiza o resultado
+receita_bruta_mes
+```
+
+
+
+
+## Análise 2 - Nível Básico
+
+Análise das Vendas Mensais de um Produto Específico:
+
+```{r}
+# pipeline de análise
+vendas_mensais_notebookpro <- dados_vendas_longo %>%
+  filter(produto == "Notebook Pro") %>%
+  select(produto, mes, valor_vendas) %>%
+  arrange(mes)
+
+# visualiza o resultado
+vendas_mensais_notebookpro
+```
+
+
+
+
+
+## Análise 3 - Nível Básico
+
+Análise das Vendas Totais por Categoria e Mês:
+
+```{r}
+# pipeline de análise
+vendas_totais_categoria_mes <- dados_vendas_longo %>%
+  group_by(categoria, mes) %>%
+  summarize(vendas_totais = sum(valor_vendas)) %>%
+  arrange(desc(vendas_totais))
+
+# visualiza o resultado
+vendas_totais_categoria_mes
+```
+
+
+
+
+## Análise 4 - Nível Intermediário
+
+Análise do Desempenho mensal por produto:
+
+```{r}
+# pipeline de análise
+desempenho_mensal_produto <- dados_vendas_longo %>%
+  group_by(produto) %>%
+  summarize(
+    vendas_total = sum(valor_vendas),
+    vendas_media = mean(valor_vendas),
+    vendas_min = min(valor_vendas),
+    vendas_max = max(valor_vendas)
+  ) %>%
+  arrange(desc(vendas_total))
+
+# visualiza o resultado
+desempenho_mensal_produto
+```
+
+
+
+
+## Análise 4 - Tabela para Apresentação
+
+```{r}
+#| label: tbl-2
+#| tbl-cap: "Desempenho mensal de Vendas por produto"
+#| echo: false
+#| eval: true
+#| html-table-processing: none
+
+# Formata a tabela de desempenho por produto com kableExtra
+desempenho_mensal_produto %>%
+  kable(
+    # Renomeia as colunas para melhor apresentação
+    col.names = c(
+      "Produto",
+      "Vendas Totais (R$)",
+      "Média Mensal (R$)",
+      "Venda Mínima (R$)",
+      "Venda Máxima (R$)"
+    ),
+    # Formata números com 2 casas decimais
+    digits = 2,
+    # Define vírgula como separador decimal e ponto como separador de milhares
+    format.args = list(decimal.mark = ",", big.mark = ".", nsmall = 2)
+  ) %>%
+  # Aplica um estilo clássico e limpo
+  kable_classic_2(
+    # Ajusta o tamanho da fonte
+    font_size = 20,
+    # Define largura para se ajustar melhor ao slide
+    full_width = FALSE,
+    # Centraliza a tabela
+    position = "center"
+  ) %>%
+  # Destaca as colunas de valores em negrito
+  column_spec(2:5, bold = TRUE) %>%
+  row_spec(1:3, bold = T, color = "white", background = "#011f4b")
+```
+
+
+
+
+## Análise 5 - Nível Intermediário
+
+Identificando meses de pico de vendas para cada categoria:
+
+```{r}
+# Pipeline para identificar mês de melhor desempenho por categoria
+meses_pico_categoria <- dados_vendas_longo %>%
+  # Agrupa por categoria e mês
+  group_by(categoria, mes) %>%
+  # Calcula as vendas totais
+  summarize(vendas_totais = sum(valor_vendas)) %>%
+  # Filtra para o mês de maior venda
+  filter(vendas_totais == max(vendas_totais)) %>%
+  # Ordena o resultado pelas vendas totais
+  arrange(desc(vendas_totais))
+
+# visualiza o resultado
+meses_pico_categoria
+```
+
+
+
+
+## Análise 6 - Nível Intermediário
+
+Identificando meses de pior venda para cada categoria:
+
+```{r}
+# Pipeline para identificar mês de pior desempenho por categoria
+meses_pior_categoria <- dados_vendas_longo %>%
+  # Agrupa por categoria e mês
+  group_by(categoria, mes) %>%
+  # Calcula as vendas totais
+  summarize(vendas_totais = sum(valor_vendas)) %>%
+  # Filtra para o mês de menor venda
+  filter(vendas_totais == min(vendas_totais)) %>%
+  # Ordena o resultado pelas vendas totais
+  arrange(desc(vendas_totais))
+
+# visualiza o resultado
+meses_pior_categoria
+```
+
+
+
+
+## Funções which.max() e which.min()
+
+
+Localizando posições de valores máximos e mínimos
+
+As funções `which.max()` e `which.min()` são extremamente úteis em 
+análise de dados:
+
+- `which.max(x)`: Retorna a **posição** (índice) do valor máximo no vetor `x`
+- `which.min(x)`: Retorna a **posição** (índice) do valor mínimo no vetor `x`
+
+**Exemplo simples:**
+
+Criando um vetor de valores:
+
+```{r}
+vendas_mensais <- c(120, 150, 140, 160, 110, 130)
+```
+
+Qual a posição do valor máximo?
+
+```{r}
+posicao_max <- which.max(vendas_mensais)
+posicao_max
+```
+
+
+Qual o valor máximo?
+
+```{r}
+vendas_mensais[posicao_max]
+```
+
+Supondo que temos nomes para os meses:
+
+```{r}
+nomes_meses <- c("Jan", "Fev", "Mar", "Abr", "Mai", "Jun")
+```
+
+Em qual mês ocorreu a venda máxima?
+
+```{r}
+mes_maior_venda <- nomes_meses[which.max(vendas_mensais)]
+mes_maior_venda
+```
+
+Estas funções são perfeitas para encontrar **quando** ocorreram eventos 
+importantes nos seus dados (máximos, mínimos, picos) em vez de apenas 
+quais foram os valores.
+
+
+
+
+
+## Análise 7 - Nível Avançado
+
+Identificando os Meses de Maior e Menor Venda por Produto:
+
+```{r}
+# Pipeline de análise para identificar os meses de pico e vale por produto
+resumo_comparativo_produto <- dados_vendas_longo %>%
+  # Agrupa os dados por produto para analisar cada um separadamente
+  group_by(produto) %>%
+  # Para cada produto, calculamos:
+  summarize(
+    # 1. Qual o mês da maior venda:
+    # - which.max(valor_vendas) encontra a POSIÇÃO da maior venda
+    # - mes[which.max(valor_vendas)] seleciona o nome do mês de maior venda
+    melhor_mes = mes[which.max(valor_vendas)],
+    # 2. Qual foi o valor da maior venda
+    maior_venda = max(valor_vendas),
+    # 3. Qual o mês da menor venda (mesma lógica do melhor mês)
+    pior_mes = mes[which.min(valor_vendas)],
+    # 4. Qual foi o valor da menor venda
+    menor_venda = min(valor_vendas)
+  )
+
+# Visualiza o resultado
+resumo_comparativo_produto
+```
+
+**Explicação do código:**
+
+1. Primeiro agrupamos por produto para realizar a análise para 
+   cada item
+   
+2. A função `which.max(valor_vendas)` retorna a posição (índice) do 
+  valor máximo
+  
+3. Ao usar `mes[which.max(valor_vendas)]`, extraímos o nome do mês na 
+   posição com valor máximo
+   
+4. Este tipo de análise é essencial para identificar padrões sazonais 
+de produtos
+
+Este relatório permite identificar rapidamente quais meses foram melhores 
+e piores para cada produto - informação valiosa para planejamento de 
+estoque e promoções.
+
+Assim, esta análise permite otimizar o planejamento de estoque e 
+ações promocionais sazonais.
+
+
+
+## Análise 7 - Tabela para Apresentação
+
+```{r}
+#| label: tbl-7
+#| tbl-cap: "Meses de Maior e Menor Venda por Produto"
+#| echo: false
+#| eval: true
+#| html-table-processing: none
+
+# Formata a tabela comparativa com kableExtra
+resumo_comparativo_produto %>%
+  kable(
+    # Renomeia as colunas para melhor apresentação
+    col.names = c(
+      "Produto",
+      "Melhor Mês",
+      "Maior Venda (R$)",
+      "Pior Mês",
+      "Menor Venda (R$)"
+    ),
+    # Formata números com 2 casas decimais
+    digits = 2,
+    # Define vírgula como separador decimal e ponto como separador de milhares
+    format.args = list(decimal.mark = ",", big.mark = ".", nsmall = 2)
+  ) %>%
+  # Aplica um estilo clássico e limpo
+  kable_paper(
+    # Ajusta o tamanho da fonte
+    font_size = 22,
+    # Define largura para se ajustar melhor ao slide
+    full_width = FALSE,
+    # Centraliza a tabela
+    position = "center"
+  ) %>%
+  # Destaca as colunas de valores monetários em negrito
+  column_spec(c(3, 5), bold = TRUE) %>%
+  row_spec(4, bold = T, color = "white", background = "#D7261E")
+```
+
+
+Os exercícios a seguir também são baseados nos dados contidos na 
+data frame **dados_vendas_longo**.
+
+
+## Análise de Dados -  Exercício Nível Básico 1
+
+1. A partir da data frame `dados_vendas_longo`, calcule o valor médio 
+de vendas por categoria e ordene do maior para o menor.
+
+```{r}
+vendas_totais_categoria <- dados_vendas_longo %>%
+  group_by(categoria) %>%
+  summarize(vendas_media = mean(valor_vendas)) %>%
+  arrange(desc(vendas_media))
+
+# visualiza o resultado
+vendas_totais_categoria
+```
+
+
+
+## Análise de Dados - Exercício Nível Básico 2
+
+
+2. A partir da data frame `dados_vendas_longo`, filtre apenas os produtos 
+da categoria "Mobiliário" e mostre as vendas totais de cada produto 
+desta categoria, ordenando do maior para o menor.
+
+```{r}
+vendas_mobiliario <- dados_vendas_longo %>%
+  filter(categoria == "Mobiliário") %>%
+  group_by(produto) %>%
+  summarize(vendas_totais = sum(valor_vendas)) %>%
+  arrange(desc(vendas_totais))
+
+# visualiza o resultado
+vendas_mobiliario
+```
+
+
+
+## Análise de Dados - Exercício Nível Intermediário 
+
+3. A partir da data frame `dados_vendas_longo`, analise o desempenho mensal 
+por categoria de produto. Calcule o total de vendas, a média mensal, o 
+valor mínimo e o valor máximo para cada categoria, ordenando do maior 
+para o menor valor total.
+
+```{r}
+# Calcula o total mensal por categoria
+vendas_mensais_categoria <- dados_vendas_longo %>%
+  group_by(categoria, mes) %>%
+  summarize(vendas_mensais = sum(valor_vendas), .groups = "drop")
+
+# Calcula os indicadores por categoria
+desempenho_categoria <- vendas_mensais_categoria %>%
+  group_by(categoria) %>%
+  summarize(
+    total_vendas = sum(vendas_mensais),
+    media_mensal = mean(vendas_mensais),
+    minimo_mensal = min(vendas_mensais),
+    maximo_mensal = max(vendas_mensais)
+  ) %>%
+  arrange(desc(total_vendas))
+
+# Visualiza o resultado
+desempenho_categoria
+```
+
+
+
+
+
+

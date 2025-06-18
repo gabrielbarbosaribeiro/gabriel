@@ -1,3 +1,32 @@
+---
+title: "Caso Junglivet Whisky Company"
+subtitle: "Introdução à CRISP-DM, RStudio, Sistema Quarto e Linguagem R"
+lang: pt-BR
+author: "Gabriel Ribeiro"
+date: 2025-04-16
+format: 
+  docx:
+    number-sections: true
+execute:
+  message: false
+  warning: false
+  echo: true
+---
+
+
+```{r}
+#| label: setup
+
+# digitos exibidos
+options(digits = 4, scipen = 999)
+
+# Carrega os pacotes usados
+library(here)
+library(tidyverse)
+library(skimr)
+```
+
+
 
 # Introdução à Metodologia CRISP-DM
 

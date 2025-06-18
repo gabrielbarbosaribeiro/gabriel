@@ -1,0 +1,989 @@
+---
+title: "Fundamentos de Probabilidade para Decisões - Parte 2"
+subtitle: "Características da Distribuição de Probabilidade de Variáveis Aleatórias"
+lang: pt-BR
+author: "Gabriel Ribeiro"
+date: 2025-05-28
+format: 
+  html:
+    theme: flatly
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  message: false
+  warning: false
+---
+
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura exibição de números
+options(digits = 8, scipen = 999)
+
+# carrega pacotes
+library(tidyverse)
+library(sample)
+```
+
+
+
+# Características da Distribuição de Probabilidade de Variáveis Aleatórias 
+
+
+## Características Sumarizam Informação
+
+Uma distribuição de probabilidade contém **infinitos** pontos de informação. 
+Na prática, é impossível analisar cada valor possível de uma VA e suas 
+respectivas probabilidades. 
+
+Por isso, precisamos de **medidas-resumo** que capturem as características 
+essenciais da distribuição em poucos números interpretáveis.
+
+**1. Posição: Onde os Dados se Concentram?**
+
+- **Valor Esperado**: Resume em um único número o "centro" da distribuição
+
+- Transforma infinitas possibilidades em uma métrica gerenciável
+
+**2. Variabilidade: Quantificando a Incerteza**
+
+- **Variância e Desvio-Padrão**: Condensam toda a dispersão dos 
+  dados em uma medida
+  
+- Permitem comparar riscos entre diferentes investimentos ou processos
+
+- Essenciais porque dois processos podem ter mesma média mas riscos 
+  totalmente diferentes
+
+**3. Forma da Distribuição: Capturando Padrões Não-Simétricos**
+
+- **Assimetria e Curtose**: Resumem desvios do padrão normal
+- Identificam se eventos extremos são mais prováveis que o esperado
+- Críticos porque muitos fenômenos empresariais não seguem o padrão "normal"
+
+**4. Interdependências: Síntese de Relações Complexas**
+
+- **Covariância e Correlação**: Reduzem relações multidimensionais a números interpretáveis
+
+- Permitem decisões de diversificação sem analisar cada cenário possível
+
+
+
+## Variância
+
+A variância $V(X)$ de uma variável aleatória $X$ mede a 
+dispersão dos valores de $X$ em torno do seu valor esperado.
+
+Para uma VA Discreta:
+
+$$
+V(X) = \sigma_{X}^2 = \sum_{i} (x_i - E(X))^2 P(X = x_i) 
+$$
+
+Para uma VA Contínua:
+
+$$
+V(X) = \sigma_{X}^2 = \int_{-\infty}^{\infty} (x - E(X))^2 f(x) \, dx 
+$$
+
+
+
+## Desvio-Padrão
+
+O desvio-padrão ($\sigma$) de uma VA é a raiz quadrada da variância 
+e fornece uma medida da dispersão dos valores de $X$ em torno do seu valor 
+esperado na mesma unidade de $X$.
+
+$$ 
+\sigma = \sqrt{V(X)} 
+$$
+
+Por exemplo, se a unidade de $X$ for R\$ (reais), o desvio-padrão também 
+será em reais, enquanto a variância será em reais ao quadrado (R\$$^2$). 
+
+
+
+## Variância e Desvio-Padrão: Exemplo Prático
+
+Implementação em R:
+
+```{r}
+# Definir os dados
+lucros <- c(2000, 5000, 8000)
+probabilidades <- c(0.3, 0.4, 0.3)
+```
+
+Calculando o valor esperado:
+
+```{r}
+valor_esperado <- sum(lucros * probabilidades)
+valor_esperado
+```
+
+Calculando a  variância manualmente:
+
+```{r}
+variancia <- sum((lucros - valor_esperado)^2 * probabilidades)
+variancia
+```
+
+
+Calculando o desvio-padrão
+
+```{r}
+desvio_padrao <- sqrt(variancia)
+desvio_padrao
+```
+
+
+Verificação usando simulação:
+
+```{r}
+# fixa a semente para reprodutibilidade
+set.seed(123)
+
+# Simulação de 10.000 amostras
+simulacao <- sample(lucros, 10000, prob = probabilidades, replace = TRUE)
+```
+
+Valor esperado empírico:
+
+```{r}
+mean(simulacao) 
+```
+
+Variância empírica:
+
+```{r}
+var(simulacao)
+```
+
+Desvio-padrão empírico:
+
+```{r}
+sd(simulacao) 
+```
+
+
+
+## Propriedades da Variância
+
+```{r}
+# Exemplo das propriedades
+set.seed(123)
+investimento <- rnorm(1000, mean = 0.05, sd = 0.12)  # Retorno 5%, vol 12%
+```
+
+Propriedade 1: $V(X + constante) = V(X)$, adicionar uma constante não 
+altera o risco
+
+```{r}
+taxa <- 0.02
+var(investimento)
+var(investimento + taxa)
+```
+
+Propriedade 2: $V(a*X) = a^2V(X)$, dobrar o investimento quadruplica o risco
+
+```{r}
+dobro_investimento <- 2 * investimento
+var(investimento)
+var(dobro_investimento)  # 4 vezes maior
+2^2 * var(investimento)  # Confirmação teórica
+```
+
+
+
+
+## Coeficiente de Variação
+
+O **coeficiente de variação (CV)** é uma medida de variabilidade 
+relativa que expressa o desvio-padrão como uma porcentagem da média, 
+permitindo comparações diretas entre variáveis com diferentes escalas 
+ou unidades.
+
+$$
+CV = \frac{\sigma}{|\mu|} \times 100\%
+$$
+
+onde:
+
+- $\sigma$ = desvio-padrão da variável aleatória
+- $\mu$ = valor esperado (média) da variável aleatória
+
+**Características principais:**
+
+- **Adimensional**: Expresso em porcentagem, independe da unidade de medida
+- **Comparável**: Permite comparar variabilidade entre variáveis diferentes
+- **Interpretação**: Quanto maior o CV, maior a variabilidade relativa
+
+**Interpretação prática:**
+
+- A interpretação da magnitude do CV depende da processo aleatório em estudo, 
+  mas geralmente um CV mais alto indica maior variabilidade relativa.
+
+
+
+
+## Coeficiente de Variação: Exemplo Comparativo
+
+
+Cálculo do CV para cada investimento
+
+```{r}
+# Ação Tech
+retorno_acao <- 15
+desvio_acao <- 6
+cv_acao <- (desvio_acao / retorno_acao) * 100
+cv_acao
+```
+
+```{r}
+# Fundo Imobiliário  
+retorno_fundo <- 1200
+desvio_fundo <- 180
+cv_fundo <- (desvio_fundo / retorno_fundo) * 100
+cv_fundo
+```
+
+
+```{r} 
+# Criptomoeda
+retorno_crypto <- 50
+desvio_crypto <- 25
+cv_crypto <- (desvio_crypto / retorno_crypto) * 100
+cv_crypto
+```
+
+
+
+
+## Aplicação: Valor-em-Risco (VaR) 
+
+O **Valor-em-Risco (VaR)** é uma medida estatística que quantifica 
+o risco de perdas em um investimento ou portfólio durante um período 
+específico, com um determinado nível de confiança.
+
+**Definição formal**: O VaR de α% é o valor tal que existe apenas 
+α% de probabilidade de a perda exceder esse valor.
+
+**Elementos do VaR**:
+
+- **Horizonte temporal**: Período de análise (1 dia, 1 semana, 1 mês)
+- **Nível de confiança**: Tipicamente 95% ou 99%
+- **Unidade monetária**: Valor máximo de perda esperada
+
+**Interpretação do VaR de 95%**:
+
+"Existe apenas 5% de chance de a perda exceder o valor do VaR"
+
+**Aplicações práticas**:
+
+- Gestão de risco em bancos e fundos
+- Determinação de limites de exposição
+- Cálculo de capital regulatório
+- Comunicação de risco para investidores
+
+
+
+
+## VaR usando a Distribuição Normal
+
+
+Implementação do VaR usando a distribuição normal em R:
+
+```{r}
+# Parâmetros do investimento
+retorno_medio <- 0.012      # 1.2% ao mês
+volatilidade <- 0.045       # 4.5% ao mês
+valor_investido <- 100000   # R$ 100.000
+```
+
+
+Cálculo do VaR 95%:
+
+```{r}
+nivel_confianca <- 0.95
+quantil_95 <- qnorm(1 - nivel_confianca)  # -1.645
+quantil_95
+```
+
+
+Cálculo do VaR 95% percentual: 
+
+```{r}
+var_percentual_95 <- retorno_medio + quantil_95 * volatilidade
+var_percentual_95
+```
+
+
+Cálculo do VaR 95% monetário:
+
+```{r}
+var_monetario_95 <- valor_investido * var_percentual_95
+var_monetario_95
+```
+
+
+Cálculo do VaR 99%
+
+```{r}
+quantil_99 <- qnorm(1 - 0.99)  # -2.326
+quantil_99
+```
+
+
+Cálculo do VaR 99% percentual: 
+
+```{r}
+var_percentual_99 <- retorno_medio + quantil_99 * volatilidade
+var_percentual_99
+```
+
+Cálculo do VaR 99% monetário: 
+
+```{r}
+var_monetario_99 <- valor_investido * var_percentual_99
+var_monetario_99
+```
+
+
+
+## Exercício 1 
+
+**Cenário**: Um gestor de investimentos está comparando dois fundos 
+com diferentes perfis de risco.
+
+**Dados Calculados**:
+
+- **Fundo Conservador**: Retorno esperado = 8.6%, Desvio-padrão = 1.9%
+- **Fundo Arrojado**: Retorno esperado = 10.2%, Desvio-padrão = 6.9%
+
+**Perguntas**:
+
+1. Calcule o coeficiente de variação para cada fundo.
+2. Compare o risco relativo dos dois fundos.
+3. Qual fundo você recomendaria para um investidor conservador? Justifique.
+
+
+
+
+
+## Solução do Exercício 1 
+
+
+# Cálculo dos Coeficientes de Variação (CV)
+
+```{r}
+cv_fundo_conservador <- (1.9 / 8.6) * 100
+cv_fundo_conservador
+```
+
+```{r}
+cv_fundo_arrojado <- (6.9 / 10.2) * 100
+cv_fundo_arrojado 
+```
+
+
+Interpretação:
+
+- Apesar do fundo arrojado ter um retorno esperado maior, seu coeficiente de variação (CV) é significativamente maior, indicando que o risco relativo 
+é muito mais alto, cerca de 3 vezes ($67/22 \approx 3$) maior que o risco 
+do fundo conservador.
+
+
+
+
+
+## Exercício 2 
+
+**Cenário**: Uma loja está comparando a previsibilidade da 
+demanda de dois produtos.
+
+**Dados**:
+
+- **Produto A**: Demanda Esperada = E(D) = $\mu$ = 100 unidades, $\sigma$ = 15 unidades
+- **Produto B**: Demanda Esperada = E(D) = $\mu$ = 50 unidades, $\sigma$ = 12 unidades
+
+**Perguntas**:
+
+1. Calcule o coeficiente de variação para cada produto.
+2. Qual produto tem maior risco relativo de demanda?
+3. Qual seria mais desafiador para gerenciar estoque?
+
+
+
+
+## Solução do Exercício 2
+
+Cálculo dos Coeficientes de Variação (CV): 
+
+```{r}
+cv_a <- (15 / 100) * 100
+cv_a 
+```
+
+```{r}
+cv_b <- (12 / 50) * 100
+cv_b 
+```
+
+
+Interpretação:
+
+- Como o coeficiente de variação da demanda do produto b é 
+maior que o do produto a, isso indica que o produto b tem uma 
+maior variabilidade (risco) relativa do que a do produto a,
+assim, é mais desafiador gerenciar o estoque do produto b.
+
+
+
+
+## Exercício 3
+
+Você está analisando um portfólio de títulos governamentais com:
+
+- Retorno médio mensal: 0.8%
+- Volatilidade mensal: 3.2%
+- Valor investido: US\$ 250.000
+
+Considerando que os retornos do protfólio seguem 
+aproximadamente uma distribuição normal:
+
+- Calcule o VaR mensal de 95% (percentual e monetário)
+- Calcule o VaR mensal de 99% (percentual e monetário)
+- Compare os resultados e interprete a diferença
+
+**Dica**: Use `qnorm()` no R para obter os quantis da distribuição 
+normal
+
+
+
+
+## Solução do Exercício 3
+
+```{r}
+# Parâmetros do investimento
+retorno_medio <- 0.008     # 0.8%
+volatilidade <- 0.032      # 3.2%
+valor <- 250000            # US$ 250k
+```
+
+
+VaR 95% percentual:
+
+```{r}
+var_95_percentual <- retorno_medio + qnorm(0.05) * volatilidade
+var_95_percentual
+```
+
+VaR 95% monetário:
+
+```{r}
+var_95_monetário <- valor * var_95_percentual
+var_95_monetário
+```
+
+
+VaR 99% percentual:
+
+```{r}
+var_99_percentual <- retorno_medio + qnorm(0.01) * volatilidade
+var_99_percentual
+```
+
+VaR 99% monetário:
+
+```{r}
+var_99_monetário <- valor * var_99_percentual
+var_99_monetário
+```
+
+
+
+
+# Covariância e Dependência entre Variáveis Aleatórias 
+
+
+## Covariância/Correlação: Exemplo
+
+
+**Dados hipotéticos** de uma sorveteria durante 5 dias:
+
+| Dia | Temperatura (°C) | Vendas (R$) |
+|-----|------------------|-------------|
+| 1   | 25               | 300         |
+| 2   | 30               | 450         |
+| 3   | 20               | 200         |
+| 4   | 35               | 500         |
+| 5   | 28               | 400         |
+
+**Médias**: 
+
+- Temperatura média: 27.6°C
+- Vendas médias: R$ 370
+
+**Interpretação da Covariância/Correlação**:
+
+- Se **positiva**: quando temperatura aumenta, vendas tendem a aumentar
+- Se **negativa**: quando temperatura aumenta, vendas tendem a diminuir  
+- Se **zero**: não há relacionamento linear entre as variáveis
+
+
+
+
+
+## Exemplo: Gráfico de Dispersão
+
+
+```{r}
+#| echo: false
+
+# Dados do exemplo
+temperatura <- c(25, 30, 20, 35, 28)
+vendas <- c(300, 450, 200, 500, 400)
+
+# Criar data frame
+dados <- data.frame(temperatura, vendas)
+
+# Gráfico de dispersão 
+ggplot(dados, aes(x = temperatura, y = vendas)) +
+  geom_point(size = 3) +
+  labs(title = "Relação: Temperatura vs Vendas",
+       x = "Temperatura (°C)",
+       y = "Vendas (R$)") + 
+  theme_minimal()
+```
+
+
+Interpretação do Gráfico:
+
+- O gráfico de dispersão mostra uma relação positiva forte entre 
+temperatura e vendas.
+
+- indicando que, à medida que a temperatura aumenta, 
+as vendas também tendem a aumentar, e vice-versa.
+
+
+
+
+
+## Implementação em R
+
+```{r}
+# Função cov para calcular a covariância
+covariancia <- cov(temperatura, vendas)
+covariancia
+```
+
+```{r}
+# Função cor para calcular a correlação
+correlacao <- cor(temperatura, vendas)
+correlacao
+```
+
+- Como indicado pelo gráfico de dispersão, há uma 
+correlação positiva muito forte entre temperatura e vendas de sorvete, 
+(0.97 ou 97%).
+
+- Se a temperatura aumenta, as vendas tendem a aumentar também, 
+e vice-versa.
+
+
+
+
+
+
+
+
+
+## Exercício 1
+
+**Cenário**: Um investidor está analisando a correlação entre os 
+retornos de duas ações para construir um portfólio diversificado. 
+Os retornos mensais históricos (em %) das duas ações nos 
+últimos 6 meses foram:
+
+| Mês | Ação A | Ação B |
+|-----|--------|--------|
+| 1   | 2.5    | 1.8    |
+| 2   | -1.2   | 3.1    |
+| 3   | 4.1    | -0.5   |
+| 4   | 1.8    | 2.4    |
+| 5   | -0.8   | 1.2    |
+| 6   | 3.6    | -1.0   |
+
+**Perguntas**:
+
+1. Faça um gráfico de dispersão dos retornos das duas ações. 
+Analisando o gráfico, você considera que há alguma correlação 
+entre os retornos das duas ações? Se sim, qual?
+
+1. Calcule a covariância e o coeficiente de correlação entre 
+as duas ações.
+
+3. Com base na correlação, essas ações são uma boa opção para 
+diversificação? Explique.
+
+
+
+
+## Solução do Exercício 1
+
+
+```{r}
+#| echo: false
+
+# Dados das ações
+acao_a <- c(2.5, -1.2, 4.1, 1.8, -0.8, 3.6)
+acao_b <- c(1.8, 3.1, -0.5, 2.4, 1.2, -1.0)
+
+# Criar data frame
+dados <- data.frame(acao_a, acao_b)
+
+# Gráfico de dispersão
+ggplot(dados, aes(x = acao_a, y = acao_b)) +
+  geom_point(size = 2.5) +
+  labs(title = "Relação entre Ação A e Ação B",
+       x = "Retorno Ação A (%)",
+       y = "Retorno Ação B (%)") + 
+  theme_minimal()
+```
+
+
+Interpretação:
+
+- Analisando o gráfico de dispersão, parece haver uma correlação negativa forte 
+entre os retornos das ações A e B, indicando que quando uma ação tem um retorno 
+positivo, a outra tende a ter um retorno negativo, e vice-versa.
+
+
+```{r}
+# Cálculo da covariância 
+covariancia <- cov(acao_a, acao_b)
+covariancia
+```
+
+```{r}
+# Cálculo correlação
+correlacao <- cor(acao_a, acao_b)
+correlacao
+```
+
+
+- Como indicado pelo gráfico de dispersão, há uma correlação positiva muito 
+forte entre temperatura e vendas, (- 0.73).
+
+- Se a retorno da ação a aumenta, o retorno da ação b tende a diminuir,
+e vice-versa.
+
+
+
+
+
+# Fundamentos de Simulação de Monte Carlo 
+
+
+## Probabilidade e Simulação de MC
+
+- Vejamos um exemplo inicial muito simples.
+
+- Considere simular a probabilidade de que uma moeda honesta resulte "cara" em 
+$n$ lançamentos. Pode-se fazer uma simulação física apenas jogando uma moeda 
+várias vezes e tomando a proporção de caras para estimar $P(Caras)$.
+
+- Usando um computador, escolha o número de tentativas n (quanto maior, 
+melhor) e utilize o seguinte comando R:
+
+```{r}
+#| eval: false
+sample(0:1, n, replace = T)
+```
+
+- O comando faz uma amostragem com reposição de ${0, 1}$, $n$ vezes de forma 
+que os resultados sejam igualmente prováveis. 
+
+- Considerando que $0$ representa coroa e 1 representa cara, a saída é uma 
+sequência de $n$ uns e zeros correspondentes a caras e coroas. 
+
+- A média da sequência é precisamente a proporção de uns. 
+
+Para simular o lançamento de uma moeda justa (processo aleatório) e estimar 
+a $P(Cara)$ fazemos:
+
+```{r}
+mean(sample(0:1, 100, replace = T))
+mean(sample(0:1, 1000, replace = T))
+mean(sample(0:1, 10000, replace = T))
+mean(sample(0:1, 100000, replace = T))
+```
+
+
+
+
+
+## Simulação de Monte Carlo - Aplicação em Finanças
+
+**Procedimento Simplificado**:
+
+- **Definição do Problema**: Identifique uma variável aleatória 
+financeira de interesse (receitas, lucros, etc.) e os possíveis cenários 
+que podem afetá-la.
+
+- **Determinação das Probabilidades**: Atribua probabilidades a cada 
+cenário com base em dados históricos ou estimativas.
+
+- **Execução das Simulações**: Realize um grande número de simulações 
+(por exemplo, 10.000) para gerar uma distribuição dos possíveis valores 
+da variável aleatória de interesse
+
+- **Análise dos Resultados**: Calcule estatísticas como a média 
+(valor esperado), probabilidades e outras medidas de interesse.
+
+
+
+## Exemplo de Aplicação 1
+
+Vamos considerar a mesma empresa que está planejando suas receitas para 
+o próximo ano, mas desta vez, utilizaremos a simulação de Monte Carlo 
+para modelar a incerteza nas receitas.
+
+**Parâmetros da Simulação**
+
+- Cenários e Probabilidades:
+
+    - Cenário Pessimista: Receita esperada de - R$ 900,000 com probabilidade 
+      de 20%.
+    
+    - Cenário Base: Receita esperada de R$ 1,500,000 com probabilidade de 50%.
+    
+    - Cenário Otimista: Receita esperada de R$ 2,000,000 com probabilidade 
+      de 30%.
+
+**Procedimento**:
+
+1. Realizar 10.000 simulações.
+
+2. Em cada simulação, selecionar um cenário com base nas probabilidades 
+e registrar a receita correspondente.
+
+3. Calcular a média das receitas simuladas (receita esperada).
+
+4. Calcular a probabilidade da receita ser positiva.
+
+
+
+
+## Exemplo de Aplicação 1 - Implementação em R
+
+```{r}
+# define os cenários e as probabilidades
+cenarios <- c(-500000, 1500000, 2000000)
+probabilidades <- c(0.2, 0.5, 0.3)
+
+# número de simulações
+simulacoes <- 10000
+
+# função para realizar selecionar um cenário e receita
+simulacao_receita <- function() {
+  sample(cenarios, size = 1, prob = probabilidades, replace = TRUE)
+}
+
+# executando as simulações
+set.seed(123) 
+receitas_simuladas <- replicate(simulacoes, simulacao_receita())
+
+# estimativa da receita esperada
+receita_esperada <- mean(receitas_simuladas)
+receita_esperada
+
+# estimativa da P(receita > 0)
+probabilidade_receita_positiva <- mean(receitas_simuladas > 0)
+probabilidade_receita_positiva
+```
+
+
+
+## Exemplo de Aplicação 2
+
+Uma empresa está avaliando a viabilidade de um novo projeto de 
+investimento. O projeto tem três possíveis resultados financeiros: 
+prejuízo, lucro moderado e lucro alto. Cada resultado tem uma 
+probabilidade associada, baseada em fatores de mercado e 
+estimativas da empresa.
+
+**Parâmetros da Simulação**
+
+- Cenários e Probabilidades:
+
+- Prejuízo: lucro esperado de R$ -200,000 com probabilidade de 25%.
+
+- Lucro Moderado: lucro esperado de R$ 300,000 com probabilidade de 50%.
+
+- Lucro Alto: lucro esperado de R$ 600,000 com probabilidade de 25%.
+
+
+**Procedimento**
+
+1. Realizar 10.000 simulações.
+
+2. Em cada simulação, selecionar um cenário com base nas probabilidades e 
+registrar o retorno correspondente.
+
+3. Calcular a média dos retornos simulados (retorno esperado).
+
+4. Calcular a probabilidade de o retorno ser positivo.
+
+
+
+
+
+## Exemplo de Aplicação 2 - Implementação em R
+
+```{r}
+# Definindo os cenários e probabilidades
+cenarios <- c(-200000, 300000, 600000)
+probabilidades <- c(0.25, 0.5, 0.25)
+
+# Número de simulações
+simulacoes <- 10000
+
+# Função para realizar uma simulação
+simulacao_lucros <- function() {
+  sample(cenarios, size = 1, prob = probabilidades, replace = TRUE)
+}
+
+# Realizando as simulações
+set.seed(456) # Para reprodutibilidade
+lucros_simulados <- replicate(simulacoes, simulacao_lucros())
+
+# Estimativa da retorno esperado
+lucro_esperado <- mean(lucros_simulados)
+lucro_esperado
+
+# Estimativa da P(lucro > 0)
+probabilidade_lucro_positivo <- mean(lucros_simulados > 0)
+probabilidade_lucro_positivo
+```
+
+
+
+
+## Exercício 1
+
+**Cenário**: Uma startup de tecnologia está avaliando o lançamento de 
+um novo aplicativo. A receita líquida do primeiro ano depende de 
+fatores como aceitação do mercado e concorrência. Os possíveis cenários são:
+
+- **Fracasso**: Receita líquida de -R$ 100.000 (probabilidade 30%)
+- **Sucesso Moderado**: Receita líquida de R$ 200.000 (probabilidade 50%)
+- **Grande Sucesso**: Receita líquida de R$ 500.000 (probabilidade 20%)
+
+**Perguntas**:
+
+1. Use simulação de Monte Carlo com 10.000 repetições para estimar 
+a receita líquida esperada.
+
+2. Qual a probabilidade de a empresa ter receita líquida positiva 
+no primeiro ano?
+
+3. Qual a probabilidade de a receita líquida superar R$ 300.000?
+
+
+
+## Solução do Exercício 1
+
+```{r}
+# Definir cenários e probabilidades
+receitas <- c(-100000, 200000, 500000)
+probabilidades <- c(0.30, 0.50, 0.20)
+
+# Função de simulação
+simulacao_receita <- function() {
+  sample(receitas, size = 1, prob = probabilidades, replace = TRUE)
+}
+
+# Simulação de Monte Carlo com 10.000 repetições
+
+# fixa a semente para reprodutibilidade
+set.seed(123)
+simulacoes <- 10000
+receitas_simuladas <- replicate(simulacoes, simulacao_receita())
+
+# 1. Receita liquida esperada
+receita_esperada <- mean(receitas_simuladas)
+receita_esperada
+
+# 2. Probabilidade de receita positiva
+prob_positiva <- mean(receitas_simuladas > 0)
+prob_positiva
+
+# 3. Probabilidade de superar R$ 300.000
+prob_300k <- mean(receitas_simuladas > 300000)
+prob_300k
+```
+
+
+
+
+## Exercício 2
+
+**Cenário**: Uma transportadora precisa avaliar os custos extras 
+mensais devido a problemas operacionais (acidentes, multas, 
+manutenção não programada). Historicamente, os custos extras seguem este padrão:
+
+- **Mês Tranquilo**: Custo extra de R$ 5.000 (probabilidade 40%)
+- **Mês Normal**: Custo extra de R$ 15.000 (probabilidade 35%)
+- **Mês Problemático**: Custo extra de R$ 35.000 (probabilidade 20%)
+- **Mês Crítico**: Custo extra de R$ 60.000 (probabilidade 5%)
+
+**Perguntas**:
+
+1. Use simulação de Monte Carlo com 15.000 repetições para estimar 
+ o custo extra médio mensal.
+ 
+2. Qual a probabilidade de os custos extras mensais excederem R$ 25.000?
+
+3. Para fins de planejamento orçamentário, qual valor a empresa deveria 
+reservar mensalmente para cobrir custos extras em 90% dos casos?
+
+
+## Solução do Exercício 2
+
+```{r}
+# Definir cenários e probabilidades
+custos_extras <- c(5000, 15000, 35000, 60000)
+probabilidades <- c(0.40, 0.35, 0.20, 0.05)
+
+# Função de simulação
+simulacao_custos <- function() {
+  sample(custos_extras, size = 1, prob = probabilidades, replace = TRUE)
+}
+
+# 1. Simulação de Monte Carlo com 15.000 repetições
+set.seed(456)
+simulacoes <- 15000
+custos_simulados <- replicate(simulacoes, simulacao_custos())
+
+# Custo extra médio mensal
+custo_extra_medio <- mean(custos_simulados)
+custo_extra_medio
+
+# Verificação teórica
+custo_teorico <- sum(custos_extras * probabilidades)
+custo_teorico
+
+# 2. Probabilidade de exceder R$ 25.000
+prob_25k <- mean(custos_simulados > 25000)
+prob_25k
+
+# 3. Valor para cobertura de 90% dos casos
+percentil_90 <- quantile(custos_simulados, 0.90)
+percentil_90
+```
+
+

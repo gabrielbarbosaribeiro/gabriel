@@ -1,0 +1,717 @@
+---
+title: "Fundamentos de Probabilidade para Decisões - Parte 1"
+subtitle: "Distribuição Normal e Valor Esperado"
+lang: pt-BR
+author: "Gabriel Ribeiro"
+date: 2025-05-23
+format: 
+  html:
+    theme: flatly
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  eval: false
+  echo: true
+  message: false
+  warning: false
+---
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura exibição de números
+options(digits = 8, scipen = 999)
+
+# carrega pacotes
+library(tidyverse)
+```
+
+
+# Distribuição Normal {.center background-color="#E8F4F8"}
+
+
+## Funções R para Distribuição Normal
+
+
+|Função                                          |Resultado                    
+|:-----------------------------------------------|:--------------------------|
+|`rnorm(n, mean=0, sd=1)`                        |Simula n valores           |
+|`dnorm(x, mean = 0, sd = 1)`                    |Densidade f(x) no ponto x  |
+|`pnorm(q, mean = 0, sd = 1, lower.tail = TRUE)` |$P(X \leq q)$              |
+|`qnorm(p, mean = 0, sd = 1, lower.tail = TRUE)` |Quantil: $\Phi^{-1}(p)$    |
+
+
+Exemplos:
+
+
+Simula 5 valores de uma distribuição normal padronizada (ou padrão):
+
+```{r}
+set.seed(123)
+rnorm(5)
+```
+
+
+Calcula $f(0)$, o valor da função densidade no ponto 0:
+
+```{r}
+dnorm(0)
+```
+
+
+Calcula $P(Z ≤ 1.96)$:
+
+```{r}
+pnorm(1.96)
+```
+
+
+Encontra o valor z (chamado quantil) tal que $P(Z ≤ z) = 0.975$, ou seja, 
+o quantil 97.5% da distribuição normal padrão, o valor que deixa 97.5% da 
+probabilidade da distribuição à esquerda:
+
+```{r}
+qnorm(0.975)
+```
+
+
+
+
+
+# Função rnorm() 
+
+## Simulação de uma VA com Distribuição Normal
+
+Simulando $X \sim N(\mu = 3, \sigma = 1)$
+
+**Objetivo**: Verificar empiricamente as propriedades da distribuição normal
+
+**Procedimento**:
+
+1. Gerar 1000 observações de $X \sim N(3, 1)$
+2. Calcular média e desvio-padrão amostrais
+3. Visualizar com histograma e densidade empírica
+
+```{r}
+set.seed(123)
+x_simulada <- rnorm(10000, mean = 3, sd = 1)
+head(x_simulada)
+```
+
+```{r}
+# média amostral
+mean(x_simulada)
+```
+
+
+```{r}
+# desvio padrão amostral
+mean(x_simulada)
+sd(x_simulada)
+```
+
+
+Visualizando a distribuição dos dados simulados:
+
+```{r}
+#| echo: false
+df <- data.frame(x_simulada)
+
+# Regra de Freedman-Diaconis para calcular o binwidth
+iqr_valores <- IQR(df$x_simulada)
+n <- length(df$x_simulada)
+binwidth_fd = 2 * iqr_valores / (n^(1/3))
+
+# Histograma com densidade empírica
+ggplot(df, aes(x = x_simulada)) +
+  geom_histogram(
+    aes(y = after_stat(density)), 
+    binwidth = binwidth_fd, 
+    color = "black",
+    fill = "skyblue") +
+  geom_density(col = "red", size = 2) + 
+  labs(title = expression("Dados simulados da VA: " * X %~% N(mu == 3, sigma == 1)), 
+     x = "X Simulada",
+     y = "Densidade") +
+  theme_minimal()
+```
+
+
+É a Lei dos Grandes Números em Ação, com 1000 observações, a média amostral 
+(≈3.02) está muito próxima da média teórica (3.0).
+
+
+## Simulação de uma VA com Distribuição Normal Padronizada
+
+Agora vamos simular a distribuição normal padronizada:
+
+```{r}
+set.seed(123)
+z_simulada <- rnorm(10000, mean = 0, sd = 1)
+head(z_simulada)
+```
+
+
+```{r}
+# média amostral
+mean(z_simulada)
+```
+
+
+```{r}
+# desvio amostral
+sd(z_simulada)
+```
+
+
+Visualizando a distribuição dos dados simulados:
+
+```{r}
+#| echo: false
+df2 <- data.frame(z_simulada)
+
+# Regra de Freedman-Diaconis para calcular o binwidth
+iqr_valores <- IQR(df2$z_simulada)
+n <- length(df2$z_simulada)
+binwidth_fd = 2 * iqr_valores / (n^(1/3))
+
+# Histograma com densidade empírica
+ggplot(df2, aes(x = z_simulada)) +
+  geom_histogram(
+    aes(y = after_stat(density)), 
+    binwidth = binwidth_fd, 
+    color = "black",
+    fill = "skyblue") +
+  geom_density(col = "red", size = 2) + 
+  labs(title = expression("Dados simulados da VA: " * Z %~% N(mu == 0, sigma == 1)), 
+     x = "Z Simulada",
+     y = "Densidade") +
+  theme_minimal()
+```
+
+
+
+# Função dnorm() 
+
+dnorm(0) = $f(0) = 0.4$
+
+```{r}
+dnorm(0)
+```
+
+**Interpretação:** dnorm(0) calcula o valor de $f(x)$ no ponto $x = 0$, 
+não uma probabilidade!
+
+
+
+# Função pnorm() 
+
+
+- pnorm(0) = $P(Z \leq 0) = 0.5$
+
+```{r}
+pnorm(0)
+```
+
+**Interpretação:** pnorm(0) calcula: "Qual a probabilidade de Z ser 
+menor ou igual a 0?"
+
+
+
+- pnorm(1) = $P(Z \leq 1) = 0.84$
+
+```{r}
+pnorm(1)
+```
+
+
+**Interpretação:** pnorm(1) responde: "Qual a probabilidade de Z ser 
+menor ou igual a 1?"
+
+
+
+
+- 1 - pnorm(0) = $P(Z > 0) = 0.5$
+
+```{r}
+1 - pnorm(0)
+```
+
+
+**Interpretação:** 1 - pnorm(0) responde: "Qual a probabilidade de Z 
+ser maior que 0?"
+
+
+
+
+
+## Caso Comum: Probabilidade entre Dois Valores
+
+Se desejamos calcular $P(-0.98 \leq Z \leq 0.14)$, podemos usar a função 
+pnorm() para calcular a probabilidade acumulada até 0.14 e subtrair a 
+probabilidade acumulada até -0.98:
+
+```{r}
+pnorm(0.14) - pnorm(-0.98)
+```
+
+A probabilidade de Z estar entre -0.98 e 0.14 é a diferença entre as 
+probabilidades acumuladas até esses pontos.
+
+
+
+
+
+# Função qnorm() 
+
+- qnorm(0.5) = $\Phi^{-1}(0.5) = 0$ 
+
+```{r}
+qnorm(0.5)
+```
+
+
+**Interpretação:** qnorm(0.5) calcula: "Qual quantil $Z$ deixa 50% da 
+distribuição à sua esquerda?" Ou seja, $P(Z \leq q) = 0.5$.
+
+
+
+- qnorm(0.9) = 1.28$ 
+
+```{r}
+qnorm(0.9)
+```
+
+
+**Interpretação:** qnorm(0.9) calcula: "Qual valor $Z$ deixa 90% da 
+probabilidade à sua esquerda?"
+
+
+
+# Score Padronizado (Z-Score) 
+
+## Além dos cálculos de probabilidade...
+
+O **score padronizado (z-score)** tem aplicações importantes no dia 
+a dia profissional:
+
+$$z = \frac{x - \mu}{\sigma}$$
+
+**Por que é útil?**
+
+O z-score nos permite **comparar valores** que estão em escalas 
+completamente diferentes, transformando-os em uma medida comum 
+e interpretável.
+
+**Interpretação:**
+
+- $z = 0$: valor igual à média
+- $z = 1$: valor 1 desvio-padrão acima da média
+- $z = -2$: valor 2 desvios-padrão abaixo da média
+
+
+
+## Exemplo Prático - Análise de Notas
+
+- Avaliação Relativa da Turma - 19 Alunos
+
+**Situação**: Após uma avaliação, você deseja fornecer aos alunos 
+uma análise do desempenho relativo de cada um em relação à turma.
+
+**Dados da avaliação:**
+
+- **Média da turma**: 55 pontos (de 100)
+- **Desvio padrão**: 12 pontos
+- **Amplitude**: notas de 38 a 85 pontos
+
+**Objetivo**: Utilizar o score padronizado para:
+
+1. Mostrar a posição relativa de cada aluno
+2. Calcular o percentil de cada aluno
+3. Facilitar a interpretação do desempenho individual
+
+
+- Simula as notas de cada aluno
+
+```{r}
+# Simulando notas de uma turma de 19 alunos
+# Fixa a semente para reprodutibilidade
+set.seed(2024)
+
+# Simula notas com média 55 e desvio padrão 12
+notas_turma <- round(rnorm(19, mean = 55, sd = 12), 2)
+
+# Limita as notas entre 38 e 85
+notas_turma <- pmax(38, pmin(85, notas_turma)) 
+
+# Visualiza as notas simuladas
+head(notas_turma, 19)
+```
+
+
+- Cálculo das Notas Relativas
+
+```{r}
+# Cria a data frame analise_relativa
+analise_relativa <- data.frame(alunos = 1:19, notas = notas_turma) %>%
+  # Calcula o z-score e nota relativa
+  mutate(
+    z_score = scale(notas),              # calcula o z-score
+    z_score_arred = round(z_score, 1),   # arredonda o z-score
+    nota_relativa = round(pnorm(z_score) * 100, 1)  # percentil
+  ) %>%
+  # Remove coluna intermediária
+  select(-z_score)
+  
+# Visualiza os dados
+head(analise_relativa, 19)
+```
+
+
+
+
+## Como ler a tabela de análise relativa
+
+**Colunas da tabela:**
+
+- **notas**: Nota original do aluno (0-100)
+
+- **z_score_arred**: Quantos desvios-padrão acima/abaixo da média
+
+  - Valores negativos: abaixo da média da turma
+  - Valores positivos: acima da média da turma
+  
+- **nota_relativa**: Percentil do aluno na turma (0-100)
+
+  - Interpretação: "Este aluno foi superior a X% dos colegas"
+  
+**Exemplos de interpretação:**
+
+- Aluno 6 (nota 71): z = 1.5, percentil 93.7
+  - Está 1.5 desvios-padrão acima da média
+  - Nota superior a 93.7% das notas da turma
+  
+- Aluno 11 (nota 38): z = -1.4, percentil 7.5
+  - Está 1.4 desvios-padrão abaixo da média
+  - Apenas 7.5% dos colegas tiveram nota inferior
+  
+**Vantagem**: A função `pnorm()` converte automaticamente cada z-score 
+no percentil correspondente
+
+
+
+
+## Exercício 1
+
+**Cenário**: A distribuição dos retornos mensais de uma ação segue 
+aproximadamente uma distribuição normal com média de 1% e desvio-padrão 
+de 3% ($R \sim N(\mu = 0.01, \sigma = 0.03)$).
+
+1. Qual a probabilidade de sofrer uma perda mensal superior a 4%? 
+   Ou seja, encontre $P(R < -0.04)$.
+
+```{r}
+# seu código aqui
+pnorm(-0,04, mean = 0.01, sd = 0.03)
+```
+
+2. Qual a probabilidade de obter um retorno positivo no próximo mês? 
+   Ou seja, encontre $P(R > 0)$.
+
+```{r}
+# seu código aqui
+1 - pnorm(0, mean = 0.01, sd = 0.03)
+```
+ 
+3. Qual a probabilidade de obter um retorno superior a 5%? 
+   Ou seja, encontre $P(R > 0.05)$.
+
+```{r}
+# seu código aqui
+1 - pnorm(0,05)
+```
+
+
+
+
+## Exercício 2
+
+**Cenário**: As vendas diárias de um produto seguem distribuição 
+normal com média de R$ 12.000 e desvio-padrão de R$ 2.500 
+($V \sim N(\mu = 12000, \sigma = 2500)$).
+
+1. Qual a probabilidade de que em um dia as vendas excedam R$ 15.000? 
+   Ou seja, encontre $P(V > 15000)$.
+
+```{r}
+# seu código aqui
+1 - pnorm(15000, mean = 12000, sd = 2500)
+```
+
+2. Para garantir estoque em 95% dos dias, qual deveria ser o valor 
+mínimo de vendas para preparação? Encontre $y$ tal que $P(V < y) = 0.95$.
+
+```{r}
+# seu código aqui
+qnorm(0.95, mean = 12000, sd = 2500)
+```
+
+3. Qual o valor mínimo de vendas esperado com 90% de probabilidade? 
+   Encontre $x$ tal que $P(V > x) = 0.90$.
+
+```{r}
+# seu código aqui
+qnorm(0.1, mean = 12000, sd = 2500)
+```
+
+
+
+
+# Valor Esperado
+
+
+
+## Amostra Aleatória Simples
+
+- Função `sample()` em R
+
+A função `sample()` executa **amostragem aleatória simples** (AAS), útil em 
+simulações e auditoria.
+
+**Exemplo: Auditoria de Faturas**
+
+Uma empresa emitiu 10.000 faturas. O auditor calculou que uma amostra 
+de 20 é suficiente:
+
+```{r}
+# Fixa a semente do gerador de números aleatórios
+set.seed(123)
+
+# Listagem da população de faturas
+listagem_populacao <- 1:10000
+
+# Extrai uma AAS com n = 20 da população, sem reposição
+faturas_selecionadas <- sample(listagem_populacao, 20)
+faturas_selecionadas
+```
+
+**Resultado**: O auditor deve examinar as faturas com os números 
+mostrados acima.
+
+
+
+
+
+## Valor Esperado: Simulação em R
+
+Verificação empírica via simulação:
+
+```{r}
+# Definir o número de lançamentos
+n_lancamentos <- 10
+
+# Simular os lançamentos de um dado honesto
+set.seed(123)  # Para reprodutibilidade
+dado <- 1:6
+resultados <- sample(dado, n_lancamentos, replace = TRUE)
+
+# Calcular a média empírica após os lançamentos
+media_empirica <- mean(resultados)
+media_empirica
+```
+
+**Lei dos Grandes Números**: À medida que aumentamos o número de 
+lançamentos (AAS), a média empírica converge para o valor esperado teórico.
+
+
+
+
+## Valor Esperado em Finanças
+
+
+- Exemplo 2: Retorno Esperado de Investimento
+
+Uma empresa analisa um investimento com os seguintes cenários:
+
+| Cenário    | Retorno (R$) | Probabilidade |
+|------------|--------------|---------------|
+| Pessimista | -50.000      | 0.2           |
+| Moderado   | 100.000      | 0.5           |
+| Otimista   | 300.000      | 0.3           |
+
+
+Implementação e Simulação:
+
+```{r}
+# Definir os dados do investimento
+retornos <- c(-50000, 100000, 300000)
+probabilidades <- c(0.2, 0.5, 0.3)
+
+# Cálculo teórico do valor esperado
+valor_esperado <- sum(retornos * probabilidades)
+valor_esperado
+```
+
+```{r}
+# Simulação para verificação
+set.seed(123)
+n_simulacoes <- 10000
+
+# Simular investimentos
+indices <- sample(1:3, n_simulacoes, prob = probabilidades, replace = TRUE)
+retornos_simulados <- retornos[indices]
+
+# Média empírica
+media_empirica <- mean(retornos_simulados)
+media_empirica
+```
+
+
+Visualiza a distribuição dos resultados:
+
+```{r}
+table(retornos_simulados) / n_simulacoes
+```
+
+
+
+## Exemplo Prático: Seguro Residencial
+
+**Contexto**: Seguradora oferece proteção contra incêndios residenciais
+
+**Dados históricos:**
+
+- Probabilidade anual de incêndio de uma casa: 1% (0.01)
+- Indenização média por incêndio: R$ 150.000
+- Margem desejada: 25%
+
+**Perguntas:**
+
+a) Calcule o valor esperado de indenizações por residência
+b) Determine o prêmio anual a ser cobrado
+c) Implemente a solução em R
+
+
+
+Resolução passo a passo:
+
+```{r}
+# Define os parâmetros
+prob_incendio <- 0.01
+valor_indenizacao <- 150000
+margem <- 0.25
+
+# a) Valor esperado das indenizações
+valor_esperado <- prob_incendio * valor_indenizacao
+valor_esperado
+```
+
+
+b) Prêmio anual com margem:
+
+```{r}
+premio_anual <- valor_esperado * (1 + margem)
+premio_anual
+```
+
+
+c) Simulação para verificar: 
+```{r}
+
+set.seed(123)
+n_casas <- 10000
+sinistros <- sample(c(0, valor_indenizacao), n_casas, 
+                   prob = c(0.99, 0.01), replace = TRUE)
+
+# Calcula a média dos sinistros
+media_sinistros <- mean(sinistros)
+media_sinistros
+```
+
+
+Calcula o número de incêndios em residências simuladas:
+
+```{r}
+num_incendios <- sum(sinistros > 0)
+num_incendios
+```
+
+
+
+
+
+## Exercício Final - Análise Comparativa de Projetos
+
+**Situação**: Sua empresa deve escolher entre dois projetos de 
+investimento:
+
+**Projeto A** (Conservador):
+
+- Investimento: R$ 200.000
+- Retornos possíveis:
+  - Baixo: R$ 220.000 (prob. 0.3)
+  - Médio: R$ 280.000 (prob. 0.4)
+  - Alto: R$ 320.000 (prob. 0.3)
+
+**Projeto B** (Arriscado):
+
+- Investimento: R$ 200.000
+- Retornos possíveis:
+  - Baixo: R$ 180.000 (prob. 0.2)
+  - Médio: R$ 260.000 (prob. 0.5)
+  - Alto: R$ 400.000 (prob. 0.3)
+
+**Tarefas:**
+
+1. Calcule o lucro esperado de cada projeto
+```{r}
+
+```
+
+```{r}
+# Projeto A (Conservador)
+investimento_A <- 200000
+retornos_A <- c(220000, 280000, 320000)
+probabilidades_A <- c(0.3, 0.4, 0.3)
+
+# Calculando os lucros para o Projeto A
+lucros_A <- retornos_A - investimento_A
+
+# Calculando o lucro esperado para o Projeto A
+# O sum(lucros_A * probabilidades_A) multiplica cada lucro pela sua probabilidade
+# e depois soma todos esses resultados.
+lucro_esperado_A <- sum(lucros_A * probabilidades_A)
+
+# Projeto B (Arriscado)
+investimento_B <- 200000
+retornos_B <- c(180000, 260000, 400000)
+probabilidades_B <- c(0.2, 0.5, 0.3)
+
+# Calculando os lucros para o Projeto B
+lucros_B <- retornos_B - investimento_B
+
+# Calculando o lucro esperado para o Projeto B
+lucro_esperado_B <- sum(lucros_B * probabilidades_B)
+
+# Exibindo os resultados dos lucros esperados
+cat("--- Lucro Esperado dos Projetos ---\n")
+cat("Lucro esperado do Projeto A (Conservador): R$", lucro_esperado_A, "\n")
+cat("Lucro esperado do Projeto B (Arriscado): R$", lucro_esperado_B, "\n\n")
+```
+
+
+2. Qual projeto escolheria baseado apenas no valor esperado?
+
+R: O projeto B por conta do retorno maior.
+
+
+3. Que informações adicionais seriam úteis para decidir?
+
+
+
+
+
+
+

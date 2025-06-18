@@ -2,7 +2,7 @@
 title: "Organização de Dados com o Pacote tidyr"
 subtitle: "Disciplina: Introducão à Ciência de Dados"
 lang: pt-BR
-author: "Seu Nome"
+author: "Gabriel Barbosa"
 date: 2025-05-07
 format: 
   html:
@@ -366,13 +366,7 @@ Transforme estes dados para o formato "longo" (tidy), criando as variáveis
 ```{r}
 # seu código aqui
 ```
-vendas_lojas_longo<-vendas_lojas %%
-pivot_longer(
-   cols=t1:t4,
-   names-to= "Trimestre",
-   values_to+"Vendas"
-   
-)
+
 
 
 
@@ -411,12 +405,7 @@ Transforme estes dados para o formato adequado para estas análises.
 ```{r}
 # seu código aqui
 ```
-   pivolt-longer(
-     cols=c(jan, fev, mar)
-     names_to= "mes",
-     values_to= "investimento"# nome
-     
-)
+
 
 
 ## Exercício 3

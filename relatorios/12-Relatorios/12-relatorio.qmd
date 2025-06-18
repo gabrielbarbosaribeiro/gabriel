@@ -1,0 +1,820 @@
+---
+title: "Análise Exploratória de Dados"
+subtitle: "Análise Exploratória Gráfica"
+lang: pt-BR
+author: "Gabriel Ribeiro"
+date: 2025-06-04
+format: 
+  html:
+    theme: flatly
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  message: false
+  warning: false
+---
+
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura exibição de números
+options(digits = 8, scipen = 999)
+
+# carrega pacotes
+library(tidyverse)  # Inclui dplyr, tidyr, ggplot2...
+library(moments)    # Para cálculos de assimetria e curtose
+library(fBasics)    # Estatísticas descritivas adicionais
+```
+
+
+
+# Visualização de Dados e o Pacote ggplot2 
+
+
+## O Quarteto de Anscombe 
+
+```{r}
+# Carregando o conjunto de dados Anscombe (built-in no R)
+data(anscombe)
+head(anscombe)
+```
+
+
+- **Quatro pares de variáveis:** (x1,y1), (x2,y2), (x3,y3), (x4,y4)
+
+- **Propriedades:** As médias, desvios-padrão, assimetria, curtose e 
+outras medidas são praticamente iguais!
+
+
+
+## Um Gráfico Exploratório
+
+```{r}
+#| fig.cap: "Gráfico de linha exploratório"
+
+# a função ggplot() cria um sistema de coordenadas vazio
+ggplot(data = economics, 
+       mapping = aes(x = date, y = unemploy/1000)) +
+  # adiciona um gráfico de linha
+  geom_line() 
+```
+
+
+
+
+
+## Um Gráfico para Publicação
+
+```{r}
+#| fig.cap: "Evolução do Desemprego nos EUA (1967-2015)"
+
+# salva o gráfico em um objeto
+grafico_desemprego_eua <-  
+# a função ggplot() cria um sistema de coordenadas vazio
+ggplot(data = economics, 
+       mapping = aes(x = date, y = unemploy/1000)) +
+  # adiciona um gráfico de linha
+  geom_line(color = "steelblue", size = 1.2) +
+  # adiciona zero no eixo Y 
+  scale_y_continuous(limits = c(0, 17), breaks = seq(0, 16, 2)) +
+  # adiciona título, subtítulo, rótulos dos eixos e fonte
+  labs(title = "Evolução do Desemprego Mensal nos EUA",
+       subtitle = "Período: 1967-2015",
+       x = "Período",
+       y = "Total de Desempregados (em milhões)",
+       caption = "Fonte: Bureau of Labor Statistics") +
+  # define o tema do gráfico
+  theme_minimal()
+
+# exibe o gráfico
+grafico_desemprego_eua
+```
+
+
+
+
+# Gráficos para Visualizar a Distribuição de Variáveis Numéricas
+
+
+## O que são?
+
+São características observáveis nos gráficos da **distribuição** de variáveis 
+numéricas:
+
+- **Simetria/Assimetria**: A distribuição é simétrica? Assimétrica à esquerda? 
+ou assimétrica à direita?.
+
+- **Modalidade**: A distribuição possui um ou dois ou mais picos (ou modas)?
+
+- **Valores Extremos**: Há um ou mais valores muito distantes da maioria dos dados?
+
+- **Variação**: Qual variável apresenta maior variação? Faz sentido 
+somente ao comparar mais de uma variável.
+
+- **Gaps**: Há intervalos de valores que não contém dados?
+
+- **Erros**: Há valores fora do intervalo factível?
+
+
+
+
+## Histograma
+
+### O que é um histograma?
+
+- Um histograma é uma gráfico para visualizar a distribuição de uma 
+variável aleatória numérica.
+
+- Ele é construído dividindo o intervalo total dos dados em uma série de 
+intervalos (*bins*), e o total de dados em cada intervalo é representada 
+pela altura de cada barra.
+
+- Assim, cada barra do histograma representa a **frequência** 
+(número de ocorrências) dos dados dentro de um determinado 
+intervalo de valores.
+
+
+
+## Histograma exploratório
+
+```{r}
+# a função ggplot() cria um sistema de coordenadas vazio
+ggplot(data = economics, 
+       mapping = aes(x = unemploy/1000)) +
+  # adiciona um histograma
+  geom_histogram()
+```
+
+
+
+## Histograma exploratório
+
+```{r}
+#| fig.cap: "Histograma da Distribuição do Desemprego nos EUA (1967-2015)"
+
+# a função ggplot() cria um sistema de coordenadas vazio
+ggplot(data = economics, 
+       mapping = aes(x = unemploy/1000)) +
+  # adiciona um histograma
+  geom_histogram()
+```
+
+
+
+
+## Como Escolher o Número de Intervalos?
+
+### Fórmula da Regra de Sturges
+
+$$
+k = 1 + \log_2(n)
+$$
+
+Onde **k** representa o número de intervalos recomendado e **n** o 
+tamanho da amostra.
+
+Aplicação aos Dados de Desemprego:
+
+```{r}
+#| echo: true
+
+# Calcula o tamanho da amostra
+n <- length(economics$unemploy)
+n
+
+# Aplicar a regra de Sturges
+k <- ceiling(1 + log2(n))
+k
+```
+
+**Resultado**: Para 574 observações, a regra recomenda **11 classes**.
+
+
+
+## Histograma Exploratório com 10 Classes 
+
+```{r}
+#| fig.cap: "Histograma com Regra de Sturges (10 classes)"
+
+# Usar o número de classes calculado no histograma
+ggplot(data = economics, 
+       mapping = aes(x = unemploy/1000)) +
+  geom_histogram(bins = 11) +
+  labs(x = "Desempregados (milhões)",
+       y = "Frequência") +
+  theme_minimal()
+```
+
+
+
+## Histogram para Publicação
+
+```{r}
+#| fig.cap: "Histograma da Distribuição do Desemprego nos EUA (1967-2015) com 10 classes"
+
+# Usar o número de classes calculado no histograma
+ggplot(
+  data = economics,
+  mapping = aes(x = unemploy / 1000)
+) +
+  geom_histogram(bins = 11, fill = "steelblue", alpha = 0.7, color = "white") +
+  labs(
+    title = "Histograma da Distribuição do Desemprego nos EUA",
+    subtitle = "Período: 1967-2015",
+    x = "Total de Desempregados (milhões)",
+    y = "Frequência",
+    caption = "Fonte: Bureau of Labor Statistics"
+  ) +
+  theme_minimal()
+```
+
+
+
+
+## Estatísticas Descritivas
+
+```{r}
+# calcula estatísticas descritivas
+economics %>%
+  summarise(
+    media = mean(unemploy, na.rm = TRUE),
+    mediana = median(unemploy, na.rm = TRUE),
+    desvio_padrao = sd(unemploy, na.rm = TRUE),
+    assimetria = fBasics::skewness(unemploy, na.rm = TRUE),
+    curtose = fBasics::kurtosis(unemploy, na.rm = TRUE)
+  )
+```
+
+
+
+
+## Uma Análise Plausível
+
+O histograma apresenta distribuição unimodal com assimetria positiva 
+entre fraca e moderada (coeficiente de assimetria 0,697), indicando que 
+houve períodos ocasionais de alto desemprego. A concentração principal 
+ocorreu entre 5 e 10 milhões de desempregados aproximadamente 
+
+A distribuição unimodal com alguma assimetria positiva indica que a maioria 
+das observações concentra-se em níveis de desemprego moderados, enquanto 
+episódios de alto desemprego ocorreram com menor frequências, assim, 
+possivelmente a assimetria observada captura recessivos econômicos ou eventos
+excepcionais ocorridos no período analisado.
+
+
+
+
+
+## Densidade Empírica (ou Kernel da Densidade) {.scrollable}
+
+
+### O que é um gráfico de densidade empírica?
+
+- Um gráfico da densidade empírica dos dados é uma representação visual que 
+estima a função densidade de probabilidade de uma variável numérica 
+contínua.
+
+- Diferente do histograma, que agrupa os dados em intervalos mostra a 
+frequência absoluta de cada intervalo, o gráfico de densidade suaviza os dados 
+para formar uma curva contínua.
+
+- Este tipo de gráfico é gerado através de um processo conhecido como \
+**estimativa do kernel da densidade**.
+
+- A ideia básica por trás da estimação do kernel de uma densidade é suavizar 
+os pontos de dados individuais em toda a região do espaço de dados, de forma a 
+obter uma estimativa contínua para a função de probabilidade. 
+
+- Isso é feito utilizando uma função conhecida como "**kernel**", que distribui 
+o peso dos pontos de dados ao longo de um intervalo de valores, com o maior 
+peso geralmente no centro e diminuindo conforme se afasta do ponto central.
+
+Um dos kernels mais comuns é o kernel gaussiano:
+
+$$
+K(x) = \frac{1}{\sqrt{2 \pi}} \exp \left(-\frac{x^2}{2}\right)
+$$
+
+- A estimativa da densidade $f(x)$ em um ponto $x$ é dada por:
+
+$$
+f(x) = \frac{1}{nh}\sum_{i=1}^{n} K\left(\frac{x - x_i}{h}\right)
+$$
+
+sendo:
+
+- $n$ o número de pontos de dados,
+- $x_i$ são os dados,
+- $K$ é a função do kernel,
+- $h$ é a largura da banda ou intervalo (*binwidth*), um parâmetro crítico 
+que controla o grau de suavização da estimativa da densidade.
+
+
+
+## Densidade Exploratória
+
+```{r}
+# salva o gráfico em um objeto
+densidade_exploratoria <-
+  # ggplot() cria um sistema de coordenadas vazio
+  ggplot(economics, aes(x = unemploy/1000)) + 
+  # adiciona um gráfico de densidade
+  geom_density()
+
+# exibe o gráfico
+densidade_exploratoria
+```
+
+
+
+
+
+## Densidade para Publicação
+
+```{r}
+# salva o gráfico em um objeto
+densidade_publicacao <- 
+  # ggplot() cria um sistema de coordenadas vazio
+  ggplot(economics, aes(x = unemploy/1000)) +
+  # adiciona um gráfico de densidade
+  # size define a espessura da linha
+  geom_density(size = 1) +
+  # adiciona título, subtítulo, rótulos dos eixos e fonte
+  labs(
+    title = "Distribuição do Desemprego nos EUA",
+    subtitle = "Período: 1967-2015",
+    x = "Total de Desempregados (milhões)",
+    y = "Densidade",
+    caption = "Fonte: Bureau of Labor Statistics"
+  )  +
+  # define o tema do gráfico
+  theme_minimal()
+
+# exibe o gráfico
+densidade_publicacao 
+```
+
+
+
+
+## Histograma com densidade empírica sobreposta
+
+```{r}
+# salva o gráfico em um objeto
+histograma_densidade <- 
+  # ggplot() cria um sistema de coordenadas vazio
+  ggplot(economics, aes(x = unemploy/1000))  +
+  # adiciona um histograma
+  geom_histogram(
+    aes(y = after_stat(density)), # normaliza o histograma
+    bins = 10,
+    fill = "#E6F2FF",     # azul muito claro para as barras
+    color = "#2E5984"     # azul escuro para borda das barras
+  ) +
+  # adiciona uma densidade empírica
+  geom_density(
+    alpha = .3,       # transparência
+    fill = "#1B3A57"  # azul navy para a densidade
+  ) +
+  # adiciona título, subtítulo, rótulos dos eixos e fonte
+  labs(
+    title = "Distribuição do Desemprego nos EUA",
+    subtitle = "Período: 1967-2015",
+    x = "Total de Desempregados (milhões)",
+    y = "Densidade",
+    caption = "Fonte: Bureau of Labor Statistics"
+  ) +
+  # define o tema do gráfico
+  theme_minimal()
+
+histograma_densidade
+```
+
+
+
+
+## Boxplot
+
+### O que é um boxplot?
+
+- Um gráfico boxplot (gráfico de caixa) é um gráfico que descreve várias 
+características essenciais de uma distribuição de dados através de um 
+resumo de cinco números (estatísticas): 
+
+- o valor mínimo, 
+- o primeiro quartil (Q1), 
+- a mediana (segundo quartil, Q2), 
+- o terceiro quartil (Q3)
+- o valor máximo.
+
+- Este gráfico fornece uma representação compacta da distribuição de um 
+conjunto de dados, destacando a mediana, a variabilidade, a assimetria 
+e os valores extremos (outliers).
+:::
+
+
+
+
+## Boxplot Exploratório
+
+```{r}
+# salva o gráfico em um objeto
+boxplot_exploratorio <-
+  # ggplot() cria um sistema de coordenadas vazio
+  ggplot(economics, aes(x = unemploy/1000)) + 
+  # adiciona um boxplot
+  geom_boxplot()
+
+# exibe o gráfico
+boxplot_exploratorio
+```
+
+
+
+
+## Boxplot Exploratório 
+
+```{r}
+# salva o gráfico em um objeto
+boxplot_exploratorio_flip <-
+  # ggplot() cria um sistema de coordenadas vazio
+  ggplot(economics, aes(x = unemploy/1000)) + 
+  # adiciona um boxplot
+  geom_boxplot() + 
+  # inverte os eixos 
+  coord_flip() 
+
+# exibe o gráfico
+boxplot_exploratorio_flip
+```
+
+
+
+
+## Boxplot para Publicação
+
+```{r}
+# salva o gráfico em um objeto
+boxplot_publicacao <- 
+  # ggplot() cria um sistema de coordenadas vazio
+  ggplot(economics, aes(x = unemploy/1000)) + 
+  # adiciona um boxplot
+  geom_boxplot() + 
+  # inverte os eixos
+  coord_flip() +
+  # adiciona zero no eixo X
+  scale_x_continuous(limits = c(0, NA), expand = expansion(mult = c(0, 0.05))) +
+  # adiciona título, subtítulo, rótulos dos eixos e fonte
+  labs(
+    title = "Distribuição do Desemprego nos EUA",
+    subtitle = "Período: 1967-2015",
+    x = "Total de Desempregados (milhões)",
+    y = NULL, # remove o rótulo do eixo Y
+    caption = "Fonte: Bureau of Labor Statistics"
+  ) +
+  # define o tema do gráfico
+  theme_minimal() +
+  # remove os rótulos do eixo X e as marcas do eixo X
+  theme(
+    axis.text.x = element_blank(),    # remove os rótulos do eixo X
+    axis.ticks.x = element_blank()    # remove as marcas do eixo X
+  )
+
+# exibe o gráfico
+boxplot_publicacao
+```
+
+
+
+
+## Boxplot Comparativo 
+
+
+- Boxplots são úteis para **comparar a distribuição**  de uma variável 
+numérica entre diferentes grupos, sendo o grupo uma variável categórica.
+
+- Esse gráfico permite identificar diferenças na tendência central,
+variabilidade, simetria/assimetria e presença de outliers entre os grupos, 
+valores possíveis de uma variável categórica.
+
+
+
+## Boxplot Comparativo Exploratório 
+
+```{r}
+# salva o gráfico em um objeto
+boxplot_comparativo_exploratorio <-
+  # ggplot() cria um sistema de coordenadas vazio
+  ggplot(diamonds, aes(x = cut, y = price)) + 
+  # adiciona um boxplot
+  geom_boxplot()
+
+# exibe o gráfico
+boxplot_comparativo_exploratorio
+```
+
+
+
+
+## Análise do Boxplot Exploratório
+
+Análise na Escala Original
+
+- A variável `price` apresenta uma distribuição fortemente assimétrica 
+positiva (assimétria à direita), para todos os níveis de qualidade do corte 
+(`cut`), com presença de muitos outliers. 
+
+- Tipicamente, a distribuição de preços de bens e serviços em geral tende 
+a ser assimétrica à direita, com a maioria dos preços concentrados 
+em torno de valores mais baixos, enquanto alguns poucos preços 
+são muito altos, o que é o caso dos diamantes.
+
+- Esta forte assimetria à direita torna difícil a visualização 
+e interpretação dos dados para comparar os preços dos diamantes 
+por qualidade do corte (`cut`), pois a presença de outliers distorce 
+a análise, dificultando a identificação de padrões e tendências.
+
+- Esse é um caso típico para aplicação de uma transformação logarítmica, 
+que pode ajudar a reduzir a assimetria e melhorar a visualização 
+e interpretação dos dados.
+
+
+
+
+
+## Boxplot Comparativo - Transformação Logarítmica
+
+```{r}
+# salva o gráfico em um objeto
+boxplot_comparativo_exploratorio <-
+  # ggplot() cria um sistema de coordenadas vazio
+  ggplot(diamonds, aes(x = cut, y = price)) + 
+  # adiciona um boxplot
+  geom_boxplot() +
+  # aplica a escala logarítmica no eixo Y
+  scale_y_log10()
+
+# exibe o gráfico
+boxplot_comparativo_exploratorio
+```
+
+
+
+
+
+## Análise dos Dados na Escala Logarítmica
+
+- **Simetria**: A transformação logarítmica tornou as distribuições 
+mais simétricas e comparáveis, reduzindo o efeito de valores extremos.
+
+- **Medianas**: Surpreendentemente, os preços medianos são similares 
+entre as qualidades de corte, com diamantes `Ideal` apresentando preço 
+mediano ligeiramente inferior.
+
+- **Variabilidade**: A dispersão dos preços é aproximadamente homogênea 
+entre os grupos, exceto para `Fair` que apresenta:
+
+  - Menor variabilidade geral
+  - Outliers inferiores indicando diamantes atipicamente baratos
+
+- **Interpretação Cuidadosa**: Este padrão contra-intuitivo sugere que:
+
+  - Outros fatores (peso, clareza, cor) podem estar confundindo a 
+    relação corte-preço
+    
+  - Diamantes com corte superior podem ter características compensatórias 
+   (menor tamanho?)
+  
+  - É essencial realizar uma análise multivariada antes de conclusões 
+  definitivas
+  
+- **Lição Estatística**: Este exemplo ilustra a importância de não basear 
+decisões em análises envolvendo apenas um par de varia'vei 
+quando múltiplas variáveis interagem.
+
+
+
+
+
+## Boxplot Comparativo para Publicação
+
+```{r}
+# salva o gráfico em um objeto
+boxplot_comparativo_publicacao <- 
+  # ggplot() cria um sistema de coordenadas vazio
+  ggplot(diamonds, aes(x = cut, y = price)) + 
+  # adiciona um boxplot
+  geom_boxplot() +
+  # aplica a escala logarítmica no eixo Y
+  scale_y_log10() +
+  # adiciona título, subtítulo, rótulos dos eixos e fonte
+  labs(
+    title = "Distribuição do Preço dos Diamantes por Qualidade do Corte",
+    subtitle = "Data frame diamonds do pacote ggplot2",
+    x = "Qualidade do Corte",
+    y = "Preço (log10) em dólares",
+    caption = "Fonte: Pacote ggplot2 da linguagem R"
+  ) +
+  # define o tema do gráfico
+  theme_minimal()
+
+# exibe o gráfico
+boxplot_comparativo_publicacao
+```
+
+
+
+
+## Exercício 
+
+Prática com ggplot2 usando a data frame `diamonds`
+
+**Parte 1 - Visualizando a variável `price`**
+
+- Histograma (use a regra de Sturges para número de classes)  
+- Gráfico de densidade empírica
+- Histograma + densidade sobreposta
+- Boxplot
+
+**Parte 2 - Análise comparativa**
+
+- Crie boxplots de `price` por `clarity`
+- Aplique transformação log10 para melhor visualização
+- Compare os padrões entre as categorias
+
+**Parte 3 - Análise descritiva**
+
+- Analise o histograma + densidade da Parte 1
+- Siga as diretrizes apresentadas em aula
+- Comente sobre forma, centro, dispersão e outliers
+
+**Requisitos:**
+
+- Todos os gráficos devem ter títulos e rótulos apropriados
+- Customização visual é opcional (exploratório vs. publicação)
+
+**Dica:** A distribuição de `price` é assimétrica. Experimente 
+visualizar também `log10(price)` para comparar interpretações nas duas escalas.
+
+
+
+
+
+
+# Gráfico com Qualidade de Publicação {.center background-color="#F1E9D2"}
+
+
+```{r}
+#| fig.width: 10
+#| fig.height: 12
+#| echo: false
+
+# Carregamento dos pacotes necessários
+library(janitor)        # Limpeza de dados
+library(showtext)       # Fontes personalizadas
+library(MetBrewer)      # Paletas de cores artísticas
+library(ggtext)         # Formatação avançada de texto
+library(patchwork)      # Combinação de gráficos
+library(gghighlight)    # Destaque de elementos
+
+# Importação e preparação dos dados
+df1 <- read.csv("https://raw.githubusercontent.com/holtzy/R-graph-gallery/master/DATA/dataConsumerConfidence.csv") %>%
+  # Converte coluna Time para formato de data
+  mutate(date = lubridate::my(Time)) %>%
+  select(-Time) %>%
+  # Transforma dados para formato longo (tidy)
+  pivot_longer(!date, names_to = "country", values_to = "value") %>%
+  # Remove valores ausentes
+  na.omit() %>%
+  # Filtra apenas os países de interesse para o gráfico
+  filter(country %in% c("USA", "China", "Japan", "Germany", "UK", "France", "Italy", "South Korea", "Australia"))
+
+# Configuração de fontes e tema
+font <- "Gudea"
+font_add_google(family = font, font, db_cache = TRUE)
+theme_set(theme_minimal(base_family = font, base_size = 10))
+bg <- "#F4F5F1"
+txt_col <- "black"
+showtext_auto(enable = TRUE)
+
+# Texto de créditos
+caption_text <- str_glue("**Design:** Gilbert Fontana<br>", "**Dados:** OECD, 2022")
+
+# Criação do gráfico de linhas principal 
+p1 <- df1 %>%
+  ggplot() +
+  # Linha de referência no valor 100
+  geom_hline(yintercept = 100, linetype = "solid", size = .25) +
+  # Pontos destacando o último valor de cada país
+  geom_point(
+    data = df1 %>%
+      group_by(country) %>%
+      slice_max(date),
+    aes(x = date, y = value, color = country), shape = 16
+  ) +
+  # Linhas temporais por país
+  geom_line(aes(x = date, y = value, color = country)) +
+  # Destaque das linhas (outras ficam em cinza)
+  gghighlight(
+    use_direct_label = FALSE,
+    unhighlighted_params = list(colour = alpha("grey85", 1))
+  ) +
+  # Rótulos com valores finais
+  geom_text(
+    data = df1 %>%
+      group_by(country) %>%
+      slice_max(date),
+    aes(x = date, y = value, color = country, label = round(value)),
+    hjust = -.5, vjust = .5, size = 2.5, family = font, fontface = "bold"
+  ) +
+  # Paleta de cores escolhida
+  scale_color_met_d(name = "Redon") +
+  # Formatação do eixo x (anos)
+  scale_x_date(date_labels = "%y") +
+  # Formatação do eixo y (apenas mostra o 100)
+  scale_y_continuous(
+    breaks = c(90, 95, 100, 105, 110),
+    labels = c("", "", "100", "", "")
+  ) +
+  # Pequenos múltiplos por país (ordem específica)
+  facet_wrap(~ factor(country, levels = c("USA", "China", "Japan", "Germany", "UK", "France", "Italy", "South Korea", "Australia"))) +
+  coord_cartesian(clip = "off") +
+  # Personalização do tema
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_text(color = txt_col, size = 7),
+    strip.text.x = element_text(face = "bold"),
+    plot.background = element_rect(color = bg, fill = bg),
+    plot.margin = margin(10, 10, 10, 10),
+    legend.position = "none"
+  )
+
+# Texto do subtítulo explicativo
+text <- tibble(
+  x = 0, y = 0,
+  label = "O indicador de confiança do consumidor fornece uma indicação dos desenvolvimentos futuros do consumo e poupança das famílias. Um indicador acima de 100 sinaliza um aumento na confiança dos consumidores em relação à situação econômica futura. Valores abaixo de 100 indicam uma atitude pessimista em relação aos desenvolvimentos futuros na economia, possivelmente resultando em uma tendência a poupar mais e consumir menos. Durante 2022, os indicadores de confiança do consumidor declinaram em muitas grandes economias ao redor do mundo.<br>"
+)
+
+# Gráfico do subtítulo
+sub <- ggplot(text, aes(x = x, y = y)) +
+  geom_textbox(
+    aes(label = label),
+    box.color = bg, fill = bg, width = unit(10, "lines"),
+    family = font, size = 3, lineheight = 1
+  ) +
+  coord_cartesian(expand = FALSE, clip = "off") +
+  theme_void() +
+  theme(plot.background = element_rect(color = bg, fill = bg))
+
+# Criação do título principal
+text2 <- tibble(
+  x = 0, y = 0,
+  label = "**Confiança do Consumidor ao Redor do Mundo**<br>"
+)
+
+# Gráfico do título
+title <- ggplot(text2, aes(x = x, y = y)) +
+  geom_textbox(
+    aes(label = label),
+    box.color = bg, fill = bg, width = unit(12, "lines"),
+    family = font, size = 10, lineheight = 1
+  ) +
+  coord_cartesian(expand = FALSE, clip = "off") +
+  theme_void() +
+  theme(plot.background = element_rect(color = bg, fill = bg))
+
+# Combinação final dos elementos usando patchwork
+finalPlot <- (title + sub) / p1 +
+  plot_layout(heights = c(1, 2)) +
+  plot_annotation(
+    caption = caption_text,
+    theme = theme(
+      plot.caption = element_markdown(hjust = 0, margin = margin(20, 0, 0, 0), 
+                                     size = 6, color = txt_col, lineheight = 1.2),
+      plot.margin = margin(20, 20, 20, 20)
+    )
+  )
+
+# Exibe o gráfico final
+finalPlot
+```
+
+
+
+
+# Recursos Adicionais
+
+Para aprofundar seus conhecimentos em visualização de dados com ggplot2:
+
+- [Documentação oficial do ggplot2](https://ggplot2.tidyverse.org/)
+- [Data Visualization with ggplot2 Cheat Sheet](https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf)
+- Livro: "ggplot2: Elegant Graphics for Data Analysis" por Hadley Wickham
+
+
+
+
+

@@ -1,0 +1,999 @@
+---
+title: "Análise Exploratória de Dados"
+subtitle: "Análise Exploratória Gráfica - Parte 2"
+lang: pt-BR
+author: "Gabriel Barbosa"
+date: 2025-06-11
+format: 
+  html:
+    theme: flatly
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  message: false
+  warning: false
+---
+
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura exibição de números
+options(digits = 8, scipen = 999)
+
+# carrega pacotes
+library(tidyverse)  # Inclui dplyr, tidyr, ggplot2...
+library(scales)     # pacote do tidyverse para formatação de números
+library(mosaicData) # para obter a df Marriage 
+library(datarium)   # para obter a df marketing 
+library(dados)      # dados do livro R para Ciência de Dados 2 ed
+library(tidyquant)  # para importar dados do Yahoo Finance
+
+# carrega os dados 
+data("Marriage")
+data("marketing")
+data("questionario")
+```
+
+
+
+# Gráficos para Visualizar a Distribuição de Variáveis Categóricas 
+
+
+## Gráfico de Barras
+
+- Um **gráfico de barras** utiliza barras retangulares para representar 
+a distribuição dos valores de uma variável categórica, 
+com a altura de cada barra proporcional à frequência absoluta ou
+relativa de cada categoria.
+
+- Estas barras podem ser organizadas verticalmente ou **horizontalmente**. 
+
+- É comumente aplicado em análises que envolvem variáveis categóricas ou 
+discretas, facilitando a interpretação e comparação dos valores 
+representados.
+
+
+
+## Gráfico de Barras Exploratório
+
+```{r}
+# gráfico de barras simples da distribuição de race
+ggplot(Marriage, aes(x = race)) + 
+  geom_bar()
+```
+
+
+Gráfico de Barras Exploratório com eixos invertidos:
+
+```{r}
+# salva o gráfico no objeto grafico_barras_exploratorio
+grafico_barras_simples <-
+# gráfico de barras simples da distribuição de raça
+ggplot(Marriage, aes(x = race)) + 
+  geom_bar() + 
+  # inverte os eixos
+  coord_flip()
+
+# exibe o gráfico
+grafico_barras_simples
+```
+
+
+- É uma boa prática inverter os eixos de um gráfico de barras para facilitar 
+a leitura, especialmente quando há muitas categorias.
+
+
+
+## Tabelas de Frequência Exploratória em R
+
+```{r}
+
+# tabela de frequencia com table
+table(Marriage$race)
+```
+
+
+
+## Tabela de Frequência com dplyr
+
+```{r}
+# Preparação dos dados para o gráfico
+
+# Calcula o número de participantes em cada nível de raça
+tabela_raca_frequencia <- Marriage %>% 
+  # conta o número de participantes por raça
+  count(race) %>% 
+  # ordena os dados pela frequência em ordem CRESCENTE (menor para maior)
+  # vamos usar ordem crescente para compensar o efeito do coord_flip()
+  arrange(n) %>%
+  # sincroniza os niveis do factor com a ordem atual das linhas
+  mutate(race = factor(race, levels = race))
+
+# exibe a tabela (dados em ordem crescente)
+tabela_raca_frequencia
+```
+
+
+
+
+## Gráfico de Barras com Rótulos nas Barras - Frequência Absoluta
+
+```{r}
+#| output-location: slide
+
+# Salva o gráfico em objeto
+grafico_barras_freq <- 
+# Cria um sistema de coordenadas para o gráfico com x sendo a raça e y sendo a frequência
+ggplot(tabela_raca_frequencia, aes(x = race, y = n)) + 
+  # Cria o gráfico de barras
+  # stat="identity" usa os valores exatos de x = 'n' (frequência)
+  geom_bar(stat="identity") +
+  # Inverte os eixos
+  coord_flip() +
+  # geom_text() adiciona rótulos (frequência) às barras
+  # hjust = -0.5: posiciona o texto um pouco à direita das barras horizontais
+  geom_text(aes(label = n), hjust = -1) + 
+  # Adiciona rótulos aos eixos e título do gráfico
+  labs(x = "Raça", 
+       y = "Número de Participantes", 
+       title  = "Distribuição dos Participantes por Raça") + 
+  # Define um tema minimalista para o gráfico
+  theme_minimal()
+
+# Exibe o gráfico
+grafico_barras_freq
+```
+
+
+
+
+## Gráfico de Barras com Rótulos nas Barras - Porcentagem
+
+```{r}
+# Preparação dos dados para o gráfico
+
+# Calcula o número e a porcentagem de participantes em cada nível de raça
+tabela_raca_porcentagem <- Marriage %>% 
+  # conta o número de participantes por raça
+  count(race) %>% 
+  # calcula a porcentagem de cada categoria
+  # divide cada frequência (n) pelo total de observações
+  mutate(porcentagem = n / sum(n)) %>%
+  # ordena os dados pela frequência em ordem CRESCENTE (menor para maior)
+  # vamos usar ordem crescente para compensar o efeito do coord_flip()
+  arrange(n) %>%
+  # sincroniza os niveis do factor com a ordem atual das linhas
+  mutate(race = factor(race, levels = race))
+
+# exibe a tabela (agora com frequência e porcentagem)
+tabela_raca_porcentagem
+```
+
+
+
+
+## Gráfico de Barras com Rótulos nas Barras - Porcentagem
+
+```{r}
+#| output-location: slide
+
+# Salva o gráfico em objeto
+grafico_barras_pct <- 
+# Cria um sistema de coordenadas para o gráfico com x sendo a raça e y sendo a % 
+ggplot(tabela_raca_porcentagem, 
+       aes(x = race, y = porcentagem)) + 
+  # Cria o gráfico de barras
+  # stat="identity" usa os valores exatos de x = 'porcentagem'
+  geom_bar(stat = "identity") +
+  # inverte os eixos para barras horizontais (e ordem decrescente visual)
+  coord_flip() +
+   # geom_text() adiciona rótulos às barras
+   # hjust = -0.3 posiciona o texto à direita das barras horizontais
+   # scales::percent converte para porcentagem 0.25 → 25%
+   geom_text(aes(label = scales::percent(porcentagem)), 
+            hjust = -0.3) +
+  # scale_y_continuous() define a formatação do eixo y
+  # scales::percent converte os valores do eixo y para porcentagens
+  scale_y_continuous(labels = scales::percent) + 
+  # Adiciona rótulos aos eixos e título do gráfico
+  labs(x = "Raça", 
+       y = "% de Participantes", 
+       title  = "Porcentagem de Participantes por raça") + 
+  # Define um tema minimalista para o gráfico
+  theme_minimal()
+
+
+# exibe o gráfico
+grafico_barras_pct
+```
+
+
+
+
+## Gráfico de Barras para Publicação - Frequência
+
+```{r}
+# Salva o gráfico em objeto
+grafico_barras_freq_pub <- 
+# Cria sistema de coordenadas: x = raça, y = frequência, fill = cores por categoria
+ggplot(tabela_raca_frequencia, aes(x = race, y = n, fill = race)) + 
+  # Cria barras usando geom_bar com stat="identity"
+  geom_bar(stat = "identity") +
+  # Inverte os eixos (barras horizontais)
+  coord_flip() +
+  # Adiciona rótulos de frequência nas barras
+  # hjust = -0.1: posiciona o texto DO LADO DIREITO das barras (parte superior)
+  # size = 6 e fontface = "bold" para melhor legibilidade
+  geom_text(aes(label = n), 
+            hjust = -0.3, 
+            size = 6, 
+            fontface = "bold") + 
+  # Define cores personalizadas para cada categoria de raça
+  scale_fill_manual(
+    values = c(
+      "White" = "coral2",
+      "Black" = "coral2", 
+      "Hispanic" = "grey70",
+      "American Indian" = "grey70"
+    )
+  ) +
+  # Aplica tema clássico (fundo branco, bordas pretas)
+  theme_classic() +
+  # Personaliza elementos visuais para qualidade de publicação
+  theme(
+    legend.position = "none",              # remove legenda (cores já identificam)
+    plot.title = element_text(size = 15),  # título com fonte 15
+    axis.text.y = element_text(size = 18), # rótulos eixo Y (raças) fonte 18
+    axis.text.x = element_text(size = 16), # rótulos eixo X (números) fonte 16
+    axis.title.x = element_blank(),        # remove título do eixo X
+    axis.title.y = element_blank()         # remove título do eixo Y
+  ) +
+  # Define título e fonte
+  labs(title = "Distribuição dos Participantes por Raça",
+       caption = "Fonte: Pacote ggplot2")
+
+# Exibe o gráfico
+grafico_barras_freq_pub
+```
+
+
+
+
+## Gráfico de Barras para Publicação - Porcentagem
+
+
+```{r}
+# Salva o gráfico em objeto
+grafico_barras_pct_pub <- 
+# Cria sistema de coordenadas: x = raça, y = porcentagem, fill = cores por categoria
+ggplot(tabela_raca_porcentagem, 
+       aes(x = race, y = porcentagem, fill = race)) + 
+  # Cria barras usando geom_bar com stat="identity"
+  geom_bar(stat = "identity") +
+  # Inverte os eixos para barras horizontais (e ordem decrescente visual)
+  coord_flip() +
+  # Adiciona rótulos de porcentagem nas barras
+  # hjust = -0.1: posiciona o texto DO LADO DIREITO das barras (parte superior)
+  # size = 6 e fontface = "bold" para melhor legibilidade
+  # scales::percent() formata como porcentagem (0.25 → 25%)
+  geom_text(aes(label = scales::percent(porcentagem)), 
+            hjust = -0.1, 
+            size = 6, 
+            fontface = "bold") +
+  # Define cores específicas para cada categoria de raça
+  scale_fill_manual(
+    values = c(
+      "White" = "coral2",
+      "Black" = "coral2", 
+      "Hispanic" = "grey70",
+      "American Indian" = "grey70"
+    )
+  ) +
+  # Formata o eixo y como porcentagem E amplia o limite para acomodar os rótulos
+  # expand = expansion(mult = c(0, 0.1)) adiciona 10% de espaço extra no limite superior
+  scale_y_continuous(labels = scales::percent, 
+                     expand = expansion(mult = c(0, 0.1))) + 
+  # Aplica tema clássico (fundo branco, bordas pretas)
+  theme_classic() +
+  # Personaliza elementos visuais para qualidade de publicação
+  theme(
+    legend.position = "none",              # remove legenda (cores já identificam)
+    plot.title = element_text(size = 15),  # título com fonte 15
+    axis.text.y = element_text(size = 18), # rótulos eixo Y (raças) fonte 18
+    axis.text.x = element_text(size = 16), # rótulos eixo X (%) fonte 16
+    axis.title.x = element_blank(),        # remove título do eixo X
+    axis.title.y = element_blank()         # remove título do eixo Y
+  ) +
+  # Define título e fonte
+  labs(title = "Porcentagem de Participantes por Raça",
+       caption = "Fonte: Pacote ggplot2")
+
+# Exibe o gráfico
+grafico_barras_pct_pub
+```
+
+
+
+
+# Gráficos Bivariados - Variável Categórica vs Variável Categórica
+
+## Gráficos de Barras Agrupadas
+
+- Os gráficos de barras agrupadas são úteis para comparar a distribuição 
+de uma variável categórica em relação a outra variável categórica.
+
+- No entanto, eles possuem algumas desvantagens que podem impactar sua 
+eficácia e interpretação.
+
+- Por exemplo: Se uma ou ambas as variáiveis contém muitos valores 
+possíveis (níveis), isso pode tornar o gráfico difícil de ler e interpretar.
+
+- Recomendado apenas em casos com poucos valores possíveis (níveis) para cada variável categórica.
+
+- **Gráficos condicionais (facetas)**, são melhores do que 
+gráficos de barras agrupadas. 
+
+
+
+## Tabela de Contingência com table()
+
+```{r}
+# Cria tabela de contingência exploratória entre raça e signo astrológico
+tabela_contingencia <- table(Marriage$race, Marriage$sign)
+tabela_contingencia 
+
+# Adiciona os totais marginais
+addmargins(tabela_contingencia)
+```
+
+
+
+
+
+## Tabela de Contingência com dplyr
+
+```{r}
+# Preparação dos dados para gráfico de barras agrupadas e empilhadas
+
+# Cria tabela de contingencia entre raça e signo astrológico
+tabela_bivariada <- Marriage %>% 
+  # count() conta as combinações únicas de race e sign
+  # sort = TRUE ordena pela frequência em ordem decrescente
+  count(race, sign, sort = TRUE) 
+
+# exibe a tabela de contingência
+tabela_bivariada
+```
+
+
+
+
+## Gráficos de Barras Agrupadas Exploratório - Frequência
+
+```{r}
+# Salva o gráfico em um objeto
+grafico_barras_agrupadas <- 
+# mapeia a variável 'sign' para o eixo x e a variável 'n' (frequência) 
+# para o eixo y
+# fill = race define as cores das barras por raça
+ggplot(tabela_bivariada, aes(x = sign, y = n, fill = race)) +
+  # geom_bar() cria o gráfico de barras agrupadas
+  # stat = "identity": usa os valores exatos da coluna 'n' (frequências)
+  # position = "dodge": agrupa as barras lado a lado
+  geom_bar(stat = "identity", position = "dodge") + 
+  # Adiciona rótulos com os valores de frequência nas barras
+  geom_text(
+    aes(label = n),              # exibe os valores da coluna 'n'
+    colour = "white",            # cor do texto em branco
+    size = 4,                    # tamanho da fonte
+    vjust = 1.5,                 # posiciona o texto para baixo (dentro das barras)
+    position = position_dodge(.9) # alinha o texto com as barras agrupadas
+                                  # .9 corresponde à largura padrão do dodge
+  ) +
+  # Paleta de cores acessível para daltônicos
+  scale_fill_brewer(
+    name = "Raça", 
+    type = "qual",
+    palette = "Set1"
+  )
+
+# Exibe o gráfico
+grafico_barras_agrupadas
+```
+
+
+
+
+## Gráficos de Barras Empilhadas Exploratório - Frequência
+
+```{r}
+# Criação do gráfico de barras empilhadas
+grafico_barras_empilhadas <-
+  ggplot(tabela_bivariada, aes(x = sign, y = n, fill = race)) + 
+  # geom_bar() cria as barras empilhadas
+  # stat = "identity": usa os valores exatos da coluna 'n' (frequências)
+  # position = "stack": empilha as barras umas sobre as outras (padrão)
+  # Diferença do "dodge": em vez de lado a lado, as barras ficam sobrepostas
+  geom_bar(stat = "identity", position = "stack") + 
+  # Adiciona rótulos com os valores de frequência dentro de cada segmento
+  geom_text(
+    aes(label = n),                # exibe os valores da coluna 'n'
+    colour = "white",              # cor do texto em branco (contraste)
+    size = 4,                      # tamanho da fonte
+    vjust = 1.2,                   # posiciona o texto ligeiramente para baixo
+    position = position_stack(.9)  # alinha o texto de cada segmento empilhado
+                                  # .9 = posiciona a 90% da altura de cada segmento
+  ) +
+  # Paleta de cores acessível para daltônicos
+  # ColorBrewer "Set1": cores distintas e com bom contraste para texto branco
+  scale_fill_brewer(
+    name = "Raça",               # título da legenda
+    type = "qual",               # qualitative: para variáveis categóricas
+    palette = "Set1"             # paleta colorblind-friendly com cores escuras
+  )
+
+# Exibe o gráfico
+grafico_barras_empilhadas
+```
+
+
+
+
+
+# Gráficos Bivariados - Variável Numérica vs Variável Numérica
+
+## Gráfico de Dispersão
+
+- Um gráfico de dispersão, também conhecido como gráfico de pontos, é uma 
+representação gráfica utilizada para exibir a **correlação** entre duas 
+variáveis **numéricas**.
+
+-  Ele é composto por um eixo horizontal (eixo x) e um eixo vertical (eixo y), 
+cada um representando uma das variáveis. Os dados são representados como 
+pontos no gráfico, onde a posição de cada ponto é determinada pelos valores 
+das variáveis (x, y).
+
+- Este tipo de gráfico é particularmente útil:
+
+- para identificar padrões de **correlação** entre as variáveis — se é 
+**positiva** (ambas as variáveis aumentam juntas), **negativa** (uma variável 
+aumenta enquanto a outra diminui), ou **nula** (sem relação aparente).
+
+- permite a visualização de **agrupamentos** de dados e a 
+**presença de valores atípicos (outliers)** que podem indicar erros de 
+medição ou peculiaridades no conjunto de dados.
+
+
+
+## Análise de Correlação em R
+
+### Função `cor`
+
+- Podemos obter a estimativa de r (Pearson) usando a função interna `cor()`:
+
+```{r}
+r_pearson <- cor(marketing$sales, 
+                 marketing$youtube,
+                 method = "pearson")
+round(r_pearson, digits = 2)
+```
+
+- Podemos obter um tamanho de efeito, segundo @cohen1988, 
+usando a função `interpret_r` do pacote `effectsize`
+
+```{r}
+effectsize::interpret_r(r_pearson, rules = "cohen1988")
+```
+
+
+
+
+## Gráfico de Dispersão Exploratório
+
+```{r}
+# Salva o gráfico em um objeto
+grafico_dispersao_simples <- 
+# mapeia o orçamento de marketing no YouTube para o eixo x e 
+# as vendas para o eixo y
+ggplot(marketing, aes(x = youtube, y = sales)) +
+  # Adicona um gráfico de dispersão de sales vs youtube
+  geom_point()
+
+# exibe o gráfico
+grafico_dispersao_simples
+```
+
+
+
+
+## Gráfico de Dispersão com Reta de Regressão
+
+```{r}
+# Salva o gráfico em um objeto
+grafico_dispersao_reta <- 
+# mapeia o orçamento de marketing no YouTube para o eixo x e 
+# as vendas para o eixo y
+ggplot(marketing, aes(x = youtube, y = sales)) +
+  # Adiciona o gráfico de dispersão de sales vs youtube
+  geom_point() + 
+  # Adiciona a reta de regressão linear
+  # se = FALSE desativa o intervalo de confiança
+  geom_smooth(method = "lm", se = FALSE)
+
+# exibe o gráfico
+grafico_dispersao_reta
+```
+
+
+
+## Gráfico de Dispersão Para Publicação
+
+```{r}
+
+# Salva o gráfico em um objeto
+grafico_dispersao_pub <-
+ggplot(marketing, aes(x = youtube, y = sales)) +
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE) + 
+  labs(
+    title = "Relação entre Orçamento de Markenting no YouTube e Vendas",
+    x = "Orçamento de Markenting no YouTube (milhares de US$)", 
+    y = "Vendas (milhares de US$) "
+  )  + 
+  theme_minimal() 
+
+# Exibe o gráfico
+grafico_dispersao_pub
+```
+
+
+
+
+# Gráficos para Séries Temporais 
+
+
+## Gráficos para Séries Temporais
+
+### Tipos 
+
+- Um gráfico pode ser um veículo poderoso para exibir mudanças de um 
+processo aleatório ao longo do tempo, e para identificar padrões, 
+tendências e sazonalidades.
+
+- O gráfico mais comum para séries temporais é o **gráfico de linha**. 
+Outras opções incluem grráficos dumbbell, gráficos de área, entre 
+outros.
+
+
+
+## Gráfico de Linha Exploratório
+
+```{r}
+# Salva o gráfico em um objeto
+grafico_linha <-
+# Mapeia variáveis para os eixos x e y
+ggplot(economics, aes(x = date, y = psavert)) +
+  # Adiciona um gráfico de linha
+  geom_line() +
+  # Adiciona título e rótulos aos eixos
+  labs(title = "Taxa de Poupança Pessoal",
+       x = "Mês",
+       y = "Taxa de Poupança Pessoal")
+
+# Exibe o gráfico
+grafico_linha
+```
+
+
+
+
+## Gráfico de Linha para Publicação 1
+
+
+### Melhorias 1
+
+- Vamos usar função `scale_x_date` para alterar como as datas são exibidas 
+no eixo x para que reflitam a periodicidade mensal, vamos estabelecer 
+marcas a cada 5 anos e as datas serão apresentadas no formato MM-AA. 
+
+- Além disso, vamos atribuir um tom de vermelho para a linha e aumentar 
+sua espessuara.
+
+- E, como sempre, vamos adotar um tema minimalista para o gráfico.
+
+
+
+## Gráfico de Linha para Publicação 1
+
+```{r}
+#| output-location: slide
+
+# Salva o gráfico em um objeto
+grafico_linha_pub <-
+# Mapeia variáveis para os eixos x e y
+ggplot(economics, aes(x = date, y = psavert)) +
+  # Adiciona um gráfico de linha
+  # color = "indianred3" define a cor da linha
+  # size = 1 define a espessura da linha
+  geom_line(color = "indianred3", 
+            size= 1 ) +
+  # NOVA: Formata o eixo x para exibir datas a cada 5 anos
+  # date_breaks = '5 years' define os intervalos de 5 anos 
+  # labels = date_format("%b-%y") formata as datas como mês-ano 
+  scale_x_date(date_breaks = '5 years', 
+               labels = date_format("%b-%y")) +
+  # Adiciona título e rótulos aos eixos
+  labs(title = "Evolução da Taxa de Poupança Pessoal (em %) nos EUA",
+       subtitle = "Período: Julho/1967 - Abril/2015",
+       x = NULL,
+       y = "Taxa de Poupança Pessoal (%)", 
+       caption = "Fonte: Federal Reserve Bank of St. Louis") +
+  # Define um tema minimalista para o gráfico
+  theme_minimal()
+
+# Exibe o gráfico
+grafico_linha_pub
+```
+
+
+### Melhorias 2
+
+- Por fim, vamos adicionar uma curva (modelo) não paramétrica para 
+facilitar a visualização de tendências de longo prazo. 
+
+- A curva não paramétrica é uma linha suavizada que ajuda a identificar 
+tendências gerais nos dados, independentemente de flutuações sazonais ou 
+ruídos de curto prazo.
+
+
+
+## Gráfico de Linha para Publicação 2
+
+```{r}
+# Salva o gráfico em um objeto
+grafico_linha_pub <-
+# Mapeia variáveis para os eixos x e y
+ggplot(economics, aes(x = date, y = psavert)) +
+  # Adiciona um gráfico de linha
+  # color = "indianred3" define a cor da linha
+  # size = 1 define a espessura da linha
+  geom_line(color = "indianred3", 
+            size= 1 ) +
+  # NOVA: Adiciona uma curva não paramétrica 
+  geom_smooth() +
+  # Formata o eixo x para exibir datas a cada 5 anos
+  # date_breaks = '5 years' define os intervalos de 5 anos 
+  # labels = date_format("%b-%y") formata as datas como mês-ano 
+  scale_x_date(date_breaks = '5 years', 
+               labels = date_format("%b-%y")) +
+  # Adiciona título e rótulos aos eixos
+  labs(title = "Evolução da Taxa de Poupança Pessoal (em %) nos EUA",
+       subtitle = "Período: Julho/1967 - Abril/2015",
+       x = NULL,
+       y = "Taxa de Poupança Pessoal (%)", 
+       caption = "Fonte: Federal Reserve Bank of St. Louis") +
+  # Define um tema minimalista para o gráfico
+  theme_minimal()
+
+# Exibe o gráfico
+grafico_linha_pub
+```
+
+
+
+
+## Gráficos de Linha para 2 Séries Temporais
+
+- Gráficos de linhas para duas, três ou mais séries podem ser eficazes 
+quando as séries têm a **mesma periodicidade** (e.g., mensal, trimestral) e 
+são **medidas na mesma escala ou unidade de medida**. 
+
+- É importante garantir que as séries sejam comparáveis e que 
+não haja diferenças significativas em suas escalas, pois isso pode distorcer 
+a interpretação dos dados.
+
+
+
+## Gráficos de Linha para 2 Séries
+
+```{r}
+# salva as séries importadas no objeto serie_bivariada
+serie_bivariada <- c("AAPL", "META") %>% 
+  # obtem os dados de fechamento das ações
+  tq_get(from = "2024-01-01") %>%
+  # seleciona as colunas relevantes
+  select(symbol, date, close) %>%
+  # renomeia as colunas para facilitar a leitura
+  rename(
+    Compania = symbol,
+    Dia = date,
+    Fechamento = close
+  )
+
+# Exibe as 6 primeiras linhas da data frame
+head(serie_bivariada)
+```
+
+
+Exibe as 6 últimas linhas da data frame:
+
+```{r}
+tail(serie_bivariada)
+```
+
+
+
+
+
+## Gráficos de Linha para 2 Séries
+
+```{r}
+# salva o gráfico em um objeto
+grafico_linha_multiseries <-
+# mapeia as variáveis para os eixos x e y, e define a cor por empresa
+ggplot(serie_bivariada, 
+       aes(x = Dia, y = Fechamento, color = Compania)) + 
+  # Adiciona um gráfico de linha
+  # size=1 define a espessura da linha
+  geom_line(size=1) +
+  # Formata o eixo x para exibir datas a cada mês-ano
+  scale_x_date(date_breaks = '1 month', 
+               labels = scales::date_format("%b-%y")) +
+  # Formata o eixo y para exibir os preços de fechamento
+  # limits = c(120, 800) define os limites do eixo y
+  # breaks = seq(120, 800, 100) define os intervalos de 100
+  scale_y_continuous(limits = c(120, 800), 
+                     breaks = seq(120, 800, 100)
+                    ) +
+  # Adiciona título e rótulos aos eixos
+  labs(title = "Preço Diário de Fechamento das Ações da Apple (AAPL) e Meta (META)",
+       subtitle = "Período: 2024-01-01 até o presente",
+       caption = "Fonte: Yahoo Finance",
+       y = "Preço de Fechamento") +
+  # Define um tema minimalista para o gráfico
+  theme_minimal()
+  
+# Exibe o gráfico
+grafico_linha_multiseries
+```
+
+
+
+
+
+# Exercícios 
+
+
+## Exercício 1
+
+### Gráfico de Barras para 1 Variável Categórica
+
+**Objetivo**: Criar um gráfico de barras para visualizar o número de 
+respondentes por estado civil.
+
+**Instruções**:
+
+1. Crie uma tabela de frequência ordenada em ordem decrescente da 
+freqüência absoluta dos estados civis (Dica: código do **slide 21**)
+
+```{r}
+# seu código aqui
+```
+
+2. Crie um gráfico de barras horizontais básico:
+
+```{r}
+# seu código aqui
+```
+
+
+3. Melhore o gráfico adicionando:
+
+   - os valores da frequência absoluta nas barras usando `geom_text()` 
+   - Título e rótulos apropriados dos eixos  com `labs(title = "...")`
+   - Tema minimalista com `theme_minimal()`
+
+
+```{r}
+# seu código aqui
+```
+
+
+
+
+
+## Exercício 2
+
+### Gráfico de Linha para 1 Série Temporal
+
+**Objetivo**: Importar dados reais do preço da ação da Petrobras (PETR4) 
+a partir do dia 2024-01-01 e criar um gráfico de linha usando os 
+pacotes `tidyquant` e `ggplot2`.
+
+**Instruções**:
+
+1. Importe os dados da Petrobras usando a função `tq_get()` do pacote 
+`tidyquant` e selecione as colunas `date` e `close`:
+
+```{r}
+# seu código aqui
+```
+
+2. Examine as primeiras linhas da data frame resultante:
+
+```{r}
+# seu código aqui
+```
+
+3. Crie um gráfico de linha básico:
+
+```{r}
+# seu código aqui
+```
+
+4. Melhore o gráfico adicionando:
+
+   - Título: "Evolução do Preço das Ações da Petrobras (PETR4)"
+   - Rótulos dos eixos: "Dia" e "Preço de Fechamento (R$)"
+   - Tema minimalista
+   - Fonte dos dados: "Fonte: Yahoo Finance"
+
+```{r}
+# seu código aqui
+```
+
+5. Adicione uma curva não paramétrica com a função `geom_smooth()` para 
+visualizar a tendência geral. Mude a cor da linha da série para `"indianred3"` 
+e aumente a espessura da linha para 1
+
+```{r}
+# seu código aqui
+```
+
+
+
+
+
+## Preparação de Dados: pivot_wider()
+
+### Função pivot_wider() do tidyr - Exercício 3
+
+A função `pivot_wider()` transforma dados do formato longo para o 
+formato largo (*wide*),.
+
+**Por que precisamos transformar?**
+
+Para estimar a correlação entre as séries de preços de duas ações, precisamos 
+que cada série de preços seja uma coluna separada, com as datas alinhadas, 
+entretanto, a função tq_get() retorna os dados no formato longo, onde cada 
+linha representa um preço de uma ação em uma data específica, ou seja, 
+as séries de preços estão empilhadas verticalmente.
+
+**Formato Longo** (estrutura retornada pela função `tq_get()`):
+
+```{r}
+dados_longo <- 
+tibble(
+  empresa = c("PETR4.SA", "PETR4.SA", "ITUB4.SA", "ITUB4.SA"),
+  data = as.Date(c("2024-01-02", "2024-01-03", "2024-01-02", "2024-01-03")),
+  preco = c(35.50, 36.20, 28.30, 28.75)
+)
+
+dados_longo
+```
+
+**Formato Largo** (necessário para análise de correlação):
+
+```{r}
+dados_largo <- 
+tibble(
+  data = as.Date(c("2024-01-02", "2024-01-03")),
+  PETR4.SA = c(35.50, 36.20),
+  ITUB4.SA = c(28.30, 28.75)
+) 
+
+dados_largo
+```
+
+**Sintaxe**:
+
+```{r}
+dados_largo <- dados_longo %>%
+  pivot_wider(
+    names_from = empresa,    # variável que será nomes de colunas
+    values_from = preco      # variável com os valores
+  )
+  
+dados_largo
+```
+
+
+
+
+
+## Exercício 3
+
+### Gráfico de Dispersão com Análise de Correlação
+
+**Objetivo**: Importar dados reais das ações da Petrobras 
+(PETR4) e do Itaú (ITUB4) a partir do dia 2024-01-01, calcular 
+a correlação entre elas e criar um gráfico de dispersão usando 
+os pacotes `tidyquant`, `effectsize` e `ggplot2`.
+
+**Instruções**:
+
+1. Importe os dados das duas empresas de forma compacta usando 
+a função `tq_get()` do pacote `tidyquant`, salve os dados em um 
+objeto chamado `dados_acoes` e mostre as primeiras linhas da 
+data frame resultante:
+
+```{r}
+# seu código aqui
+```
+
+2. Transforme os dados para análise de correlação usando `pivot_wider()` e 
+mostre as primeiras linhas da data frame resultante:
+
+```{r}
+#| eval: false
+
+dados_correlacao <- dados_acoes %>%
+  pivot_wider(
+    names_from = empresa, 
+    values_from = preco
+    ) %>%
+  rename(petrobras = "PETR4.SA", itau = "ITUB4.SA")
+
+# Exibe os dados transformados
+head(dados_correlacao)
+```
+
+3. Calcule a correlação entre os preços das duas ações:
+
+```{r}
+# seu código aqui
+```
+
+4. Interprete a magnitude da correlação usando as regras de Cohen:
+
+```{r}
+# seu código aqui
+```
+
+5. Crie um gráfico de dispersão básico:
+
+```{r}
+# seu código aqui
+```
+
+6. Melhore o gráfico adicionando título, rótulos, reta de regressão e tema:
+
+```{r}
+# seu código aqui
+```
+
+
+7. Escreva sua interpretação do gráfico de dispersão a partir do coeficiente 
+de correlação de Pearson estimado. Pelo resultado da sua análise, se 
+uma carteira for montada com apenas as ações da Petrobras e do Itaú, seria 
+uma carteira diversificada de investimento em ações?
+
+
+
+
+# Recursos Adicionais
+
+Para aprofundar seus conhecimentos em visualização de dados com ggplot2:
+
+- [Documentação oficial do ggplot2](https://ggplot2.tidyverse.org/)
+- [Data Visualization with ggplot2 Cheat Sheet](https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf)
+- Livro: "ggplot2: Elegant Graphics for Data Analysis" por Hadley Wickham
+
+
+
+
+

@@ -2,21 +2,20 @@
 title: "Caso Junglivet Whisky Company"
 subtitle: "Introdução à CRISP-DM, RStudio, Sistema Quarto e Linguagem R"
 lang: pt-BR
-author: "Seu Nome"
+author: "Gabriel Ribeiro"
 date: 2025-04-16
 date-format: long
 format:
   typst:
     columns: 1
-    toc: true
+    toc: false
     papersize: a4
     fontsize: 12pt
     number-sections: true
 execute:
-  echo: true
+  echo: false
   warning: false
   message: false
----
 ---
 
 

@@ -1,0 +1,653 @@
+---
+title: "Análise Exploratória de Dados"
+subtitle: "Análise Exploratória Numérica"
+lang: pt-BR
+author: "Gabriel Ribeiro"
+date: 2025-06-02
+format: 
+  html:
+    theme: flatly
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  message: false
+  warning: false
+---
+
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura exibição de números
+options(digits = 8, scipen = 999)
+
+# carrega pacotes
+library(tidyverse)
+```
+
+
+
+
+# Medidas de Posição ou de Tendência Central 
+
+
+## Média amostral em R
+
+Exemplo de cálculo da média em R
+
+```{r}
+# Criando um vetor de dados
+dados <- c(12, 15, 18, 22, 25, 28, 30, 35, 40, 42)
+
+# Calculando a média
+media <- mean(dados)
+media
+```
+
+
+```{r}
+# Cálculo manual da média
+media_manual <- sum(dados) / length(dados)
+media_manual
+```
+
+**Interpretação**: O valor médio desta amostra é `r media`, que busca 
+representar em um único número o "centro" dos dados, ou o valor em 
+torno do qual os dados estão agrupados.
+
+
+## Quantis em R
+
+Exemplos de cálculo de quantis em R:
+
+```{r}
+# Usando o mesmo vetor de dados
+# Mediana (Q2)
+mediana <- median(dados)
+mediana
+```
+
+```{r}
+# Quartis
+quartis <- quantile(dados, probs = c(0.25, 0.5, 0.75))
+quartis
+```
+
+**Observação**: O segundo quartil (Q2) é igual à mediana.
+
+```{r}
+# Decis
+decis <- quantile(dados, probs = seq(0.1, 0.9, by = 0.1))
+decis
+```
+
+```{r}
+# Percentis
+percentis <- quantile(dados, probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
+percentis
+```
+
+
+
+
+
+## Moda em R
+
+Implementando uma função para calcular a moda:
+
+```{r}
+calcular_moda <- function(x) {
+  # 1. Cria tabela de frequências
+  tab <- table(x)
+  
+  # 2. Identifica valor(es) com máxima frequência
+  moda <- as.numeric(names(tab)[tab == max(tab)])
+  
+  # 3. Retorna o resultado
+  return(moda)
+}
+```
+
+**Uso da função**:
+
+```{r}
+dados <- c(3, 5, 5, 7, 7, 7, 9)
+calcular_moda(dados)
+```
+
+
+
+
+
+
+
+## Casos Especiais
+
+
+Cuidados no cálculo da moda:
+
+```{r}
+# Dados sem moda (todos valores únicos)
+# retorna todos valores
+calcular_moda(c(1,2,3,4,5)) 
+```
+
+```{r}
+# Dados multimodais
+# retorna c(1,2)
+calcular_moda(c(1,1,2,2,3))  
+```
+
+
+```{r}
+# Dados com NA
+# precisa tratamento
+calcular_moda(c(1,2,2,NA))   
+```
+
+
+
+
+
+
+
+
+
+
+## Exercício - Cálculo e Interpretação de Medidas de Posição
+
+Considere o seguinte conjunto de dados que representa as idades 
+de clientes em uma loja:
+
+```{r style="font-size: 1.4em;"}
+idades <- c(23, 25, 28, 28, 32, 35, 36, 38, 40, 42, 45, 47, 50, 52, 55, 60, 65)
+```
+
+1. Calcule a idade média dos clientes
+2. Determine a idade mediana e compare com a idade média
+3. Encontre o primeiro e terceiro quartis
+4. Identifique o percentil 90
+5. Verifique se há moda nos dados
+
+**Discussão**: O que as medidas de posição revelam sobre a 
+distribuição das idades?
+
+
+
+
+## Solução do Exercício
+
+```{r}
+# 1. idade média
+mean(idades)
+```
+
+```{r}
+# 2. idade mediana
+median(idades)
+```
+
+```{r}
+# 3. Quartis: 
+quantile(idades, probs = c(0.25, 0.5, 0.75))
+```
+
+```{r}
+# 4. Percentil 90
+quantile(idades, probs = c(0.1, 0.3, 0.4, 0.8, 0.9))
+```
+
+```{r}
+# 5. Moda
+calcular_moda(idades)
+```
+
+**Interpretação**:
+
+- A média (`r mean(idades)`) e mediana (`r median(idades)`) são próximas, 
+  sugerindo distribuição simétrica
+  
+- O primeiro quartil (`r quantile(idades, 0.25)`) indica que 25% dos clientes 
+  têm até esta idade
+  
+- O percentil 90 (`r quantile(idades, 0.9)`) indica que 90% dos clientes 
+  têm até esta idade
+  
+- moda = `r calcular_moda(idades)` (idade mais frequente entre os clientes)
+
+
+
+
+
+
+# Medidas de Variabialidade/Variação
+
+
+## Variância em R
+
+Cálculo da variância usando a função `var()`:
+
+```{r}
+dados <- c(12, 15, 18, 22, 25, 28, 30, 35, 40, 42)
+
+# Variância amostral (divisor n-1)
+variancia <- var(dados)
+variancia
+
+# Comparação com fórmula manual
+n <- length(dados)
+sum((dados - mean(dados))^2) / (n-1)
+```
+
+**Interpretação**: A variância de `r round(variancia, 2)` unidades² 
+quantifica o desvio quadrático médio.
+
+
+
+
+## Desvio-Padrão em R
+
+Cálculo com a função `sd()`:
+
+```{r}
+desvio_padrao <- sd(dados)
+desvio_padrao
+
+# Comparação com fórmula manual
+sqrt(var(dados)) == sd(dados)
+```
+
+**Dica**: Use `round(sd(dados), 2)` para limitar casas decimais 
+em relatórios.
+
+
+
+
+## Amplitude em R
+
+Cálculo usando as funções `range()` e `diff()`:
+
+```{r}
+amplitude <- diff(range(dados))
+amplitude
+
+# Equivalente a:
+max(dados) - min(dados)
+```
+
+A Amplitude de `r amplitude` unidades mostra a distância 
+entre o valor máximo e o mínimo, mas é sensível a outliers.
+
+
+
+
+## Intervalo Interquartil (IQR) em R
+
+Cálculo usando a função `IQR()`:
+
+```{r}
+iqr_valor <- IQR(dados)
+iqr_valor
+
+# Verificando quartis
+quantile(dados, c(0.25, 0.75))
+```
+
+**Vantagem**: IQR de `r iqr_valor` é robusto a outliers, diferentemente 
+da amplitude.
+
+
+
+
+
+## Coeficiente de Variação em R
+
+- Implementando uma função para CV
+
+```{r}
+cv <- function(x, na.rm = FALSE) {
+
+  # 1. tratamento de valores ausentes (NAs)
+  if(na.rm) x <- x[!is.na(x)]
+  
+  # 2. Verifica se o vetor está vazio 
+  # após a remoção de NAs
+  if(length(x) == 0) return(NA)
+  
+  # 3. Cálculo do desvio padrão:
+  desvio <- sd(x, na.rm = na.rm)
+  
+  # 4. Cálculo da média:
+  media <- mean(x, na.rm = na.rm)
+  
+  # 5. Cálculo final do CV:
+  (desvio / media) * 100
+}
+
+# Exemplo de uso com dados contendo NA
+dados_com_na <- c(dados, NA)
+
+# Retorna NA (comportamento conservador)
+cv(dados_com_na)
+
+# Ignora NA e calcula com os demais valores
+cv(dados_com_na, na.rm = TRUE)  
+```
+
+- **Nota sobre `na.rm = FALSE`**: Seguimos o padrão do R para forçar 
+tratamento explícito de valores ausentes. Use `na.rm = TRUE` quando 
+apropriado para seu contexto.
+
+- **Interpretação**: CV de `r round(cv(dados), 2)`% indica a variabilidade 
+relativa à média.
+
+
+
+
+
+## Exercício 
+
+Uma empresa de tecnologia está analisando o desempenho (em R$ mil) de 
+duas equipes de vendas em 2023:
+
+```{r}
+# Metodologia tradicional de vendas
+equipe_A <- c(85, 92, 78, 110, 95, 105, 115, 98, 102, 250)
+
+# Nova metodologia de vendas
+equipe_B <- c(120, 115, 125, 118, 122, 130, 115, 120, 125, 122) 
+```
+
+1. Calcule para cada equipe:
+
+   - Variância e desvio-padrão
+   - Amplitude e IQR
+   - Coeficiente de variação
+
+2. Compare os resultados e responda:
+
+   - Qual equipe tem desempenho mais consistente?
+   - O outlier na Equipe A afeta quais medidas?
+   - Se você fosse o gestor, qual métrica usaria para avaliar a 
+     equipe mais estável?
+
+**Contexto**: A Equipe B utiliza uma nova metodologia de vendas
+
+
+
+
+## Solução do Exercício
+
+- **Equipe A:**
+
+```{r}
+# cria df para exibir resultados
+data.frame(
+  Medida = c("Variância", "Desvio-Padrão", "Amplitude", "IQR", "CV"),
+  Valor = c(round(var(equipe_A), 2), 
+           round(sd(equipe_A), 2),
+           diff(range(equipe_A)),
+           IQR(equipe_A),
+           paste0(round(cv(equipe_A), 2), "%"))
+)
+```
+
+
+- **Equipe B:**
+
+```{r}
+# cria df para exibir resultados
+data.frame(
+  Medida = c("Variância", "Desvio-Padrão", "Amplitude", "IQR", "CV"),
+  Valor = c(round(var(equipe_B), 2), 
+           round(sd(equipe_B), 2),
+           diff(range(equipe_B)),
+           IQR(equipe_B),
+           paste0(round(cv(equipe_B), 2), "%"))
+)
+```
+
+
+**Análise Gerencial**:
+
+1. **Consistência**: Equipe B tem menor 
+CV (`r round(cv(equipe_B), 2)`% vs `r round(cv(equipe_A), 2)`%), 
+indicando maior estabilidade no desempenho.
+
+2. **Impacto do Outlier**: Afeta fortemente a variância, o desvio-padrão,  
+a amplitude e o cv, tornando essas medidas menos representativas.
+
+3. **Métrica Recomendada**: IQR, por ser robusta a valores extremos. 
+
+4. **Tomada de Decisão**: A nova metodologia (Equipe B) produz resultados 
+mais previsíveis.
+
+
+
+
+
+# Medidas de Correlação 
+
+No mundo dos negócios, raramente as variáveis operam isoladamente:
+
+- **Vendas** e **investimento em marketing**
+- **Satisfação do cliente** e **tempo de resposta ao atendimento**
+- **Produtividade** e **horas de treinamento**
+- **Inadimplência** e **score de crédito**
+
+**Questões fundamentais**:
+
+1. Existe relação entre estas variáveis?
+2. Qual a intensidade desta relação?
+3. Em que direção se movem (mesma direção ou opostas)?
+
+A análise de correlação nos ajuda a quantificar e entender estas relações,
+sendo fundamental para:
+
+- Tomada de decisões baseadas em dados
+- Identificação de padrões e tendências
+- Construção de modelos preditivos
+- Gestão de riscos
+
+
+
+
+## O que são Covariância e Correlação?
+
+- A **covariância** mede a relação linear entre duas variáveis, indicando  
+a **direção** da relação linear entre duas variáveis.
+
+- A **correlação** é uma medida padronizada da covariância, variando de -1 
+a 1, e indica a **direção** e a **força** da relação linear entre duas 
+variáveis.
+
+- Ambas são usadas para entender como duas variáveis **covariam**
+
+
+- **Estimador da covariância**
+
+$$
+s_{xy} = \frac{1}{n-1}\sum_{i=1}^{n}(x_i - \bar{x})(y_i - \bar{y})
+$$
+
+
+
+- **Estimador da correlação de Pearson**
+
+$$
+r_{xy} = \frac{s_{xy}}{s_x s_y} = \frac{\sum_{i=1}^{n}(x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum_{i=1}^{n}(x_i - \bar{x})^2 \sum_{i=1}^{n}(y_i - \bar{y})^2}}
+$$
+
+
+Sendo:
+
+- $s_{xy}$: a covariância entre x e y
+- $s_x$, $s_y$: os desvios-padrão
+- $\bar{x}$, $\bar{y}$: as médias amostrais
+- $n$: o tamanho da amostra
+
+
+
+
+## Covariância e Correlação em R
+
+Exemplo básico
+
+```{r}
+# Dados de exemplo: Investimento em Marketing vs Vendas
+marketing <- c(10, 15, 12, 8, 20)
+vendas <- c(25, 30, 28, 20, 40)
+
+# Covariância
+cov(marketing, vendas)
+
+# Correlação
+cor(marketing, vendas)
+
+# Matriz de correlação para múltiplas variáveis
+dados <- data.frame(marketing, vendas)
+cor(dados)
+```
+
+
+
+
+
+## Exercício 1 - Análise de Performance 
+
+Uma empresa de consultoria deseja entender a relação entre diferentes 
+métricas de performance de seus consultores. Os dados abaixo representam 
+12 consultores selecionados aleatoriamente:
+
+```{r}
+# Dados reais de uma empresa de consultoria
+dados_consultoria <- data.frame(
+  consultor = 1:12,
+  horas_treinamento = c(20, 35, 15, 40, 25, 10, 30, 45, 18, 28, 38, 22),
+  satisfacao_cliente = c(7.2, 8.5, 6.8, 9.1, 7.8, 6.2, 8.2, 9.3, 7.0, 8.0, 8.8, 7.5),
+  faturamento_mensal = c(45, 68, 38, 85, 52, 32, 62, 92, 42, 58, 75, 48)
+)
+
+# Exibir primeiras linhas
+head(dados_consultoria, 5)
+```
+
+**Tarefas**:
+
+1. Crie uma matriz de gráficos de dispersão (scatterplot matrix) para 
+   visualizar todas as relações simultaneamente.
+
+2. Calcule e interprete a matriz de correlação completa.
+
+3. Identifique a força das correlações e discuta as implicações 
+   gerenciais.
+
+4. A empresa planeja investir R$ 50.000 em treinamento. Com base na 
+   análise, este investimento se justifica? Explique.
+
+5. **Reflexão crítica**: Se encontrarmos alta correlação entre treinamento 
+   e faturamento, podemos afirmar que treinar mais causará maior 
+   faturamento? Justifique.
+
+
+
+
+
+## Solução do Exercício
+
+1 - Matriz de gráficos de dispersão
+
+```{r}
+pairs(dados_consultoria[, -1], 
+      main = "Matriz de Dispersão - Métricas de Performance",
+      pch = 19, 
+      col = "darkblue",
+      cex = 1.2)
+```
+
+
+2 - Matriz de Correlação
+
+```{r}
+# Calcular correlações
+matriz_cor <- cor(dados_consultoria[, -1])
+round(matriz_cor, 3)
+```
+
+
+3 - Análise das Relações
+
+```{r}
+# Correlação entre horas de treinamento e faturamento
+cor_treinamento_faturamento <- cor(dados_consultoria$horas_treinamento, 
+                                   dados_consultoria$faturamento_mensal)
+
+# exibir correlação
+cor_treinamento_faturamento
+```
+
+```{r}
+# Correlação entre horas de treinamento e satisfação do cliente
+cor_treinamento_satisfacao <- cor(dados_consultoria$horas_treinamento, 
+                                  dados_consultoria$satisfacao_cliente)
+
+cor_treinamento_satisfacao 
+```
+
+
+**Interpretação**:
+
+- Ambas as correlações são **positivas** e **fortes**:
+
+  - `r round(cor_treinamento_faturamento, 3)` entre horas de treinamento 
+    e faturamento mensal
+    
+  - `r round(cor_treinamento_satisfacao, 3)` entre horas de treinamento 
+    e satisfação do cliente
+
+- Correlação **muito forte e positiva**: consultores com mais horas de 
+treinamento tendem a gerar maior faturamento
+
+- A satisfação do cliente também está positivamente correlacionada com 
+ambas as métricas
+
+
+**4. Decisão de Investimento**
+
+Com base na correlação de `r round(cor_treinamento_faturamento, 3)`:
+
+- **Recomendação**: O investimento em treinamento se justifica, pois 
+  consultores mais treinados tendem a gerar maior faturamento e satisfação 
+  do cliente, pelas estimativas dos coeficientes de correlação.
+
+
+**5. Reflexão Crítica**
+
+**ATENÇÃO**: Correlação ≠ Causalidade!, portanto não podemos afirmar que
+mais treinamento causará maior faturamento.
+
+Possíveis explicações alternativas:
+
+1. **Seleção**: Consultores mais motivados buscam mais treinamento E 
+   trabalham mais
+   
+2. **Confundimento**: Consultores seniores têm acesso a mais treinamento 
+   E clientes maiores
+   
+3. **Causalidade reversa**: Alto faturamento permite investir em mais 
+   treinamento
+
+**Conclusão**: Para estabelecer causalidade, seria necessário um experimento 
+controlado ou análise mais sofisticada.
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,193 @@
+---
+title: "Análise Exploratória de Dados"
+subtitle: "Análise Exploratória Gráfica"
+lang: pt-BR
+author: "Arthur Henrique"
+date: 2025-06-04
+format: 
+  html:
+    theme: flatly
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  message: false
+  warning: false
+---
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura exibição de números
+options(digits = 8, scipen = 999)
+
+# carrega pacotes
+library(tidyverse)  # Inclui dplyr, tidyr, ggplot2...
+library(moments)    # Para cálculos de assimetria e curtose
+library(fBasics)    # Estatísticas descritivas adicionais
+```
+# Exercício Prático com ggplot2 usando a data frame diamonds
+
+## Parte 1 - Visualizando a variável price
+
+Histograma da variável price
+
+Primeiro, vou calcular o número de classes para o histograma da variável price usando a Regra de Sturges.
+
+```{r}
+# Calcula o tamanho da amostra para a variável price da data frame diamonds
+n_price <- length(diamonds$price)
+n_price
+
+# Aplicar a regra de Sturges
+k_price <- ceiling(1 + log2(n_price))
+k_price
+```
+
+Com o k calculado, que é o número de classes recomendado pela Regra de Sturges, agora vou criar o histograma.
+
+```{r}
+# Histograma da variável price com o número de classes da Regra de Sturges
+ggplot(
+  data = diamonds,
+  mapping = aes(x = price)
+) +
+  geom_histogram(bins = k_price, fill = "steelblue", alpha = 0.7, color = "white") +
+  labs(
+    title = "Histograma da Distribuição do Preço dos Diamantes",
+    subtitle = "Data frame diamonds do pacote ggplot2",
+    x = "Preço (dólares)",
+    y = "Frequência",
+    caption = "Fonte: Pacote ggplot2 da linguagem R"
+  ) +
+  theme_minimal()
+```
+
+Gráfico de Densidade Empírica da variável price
+
+```{r}
+# Gráfico de densidade empírica da variável price
+ggplot(
+  data = diamonds,
+  mapping = aes(x = price)
+) +
+  geom_density(size = 1) +
+  labs(
+    title = "Densidade Empírica da Distribuição do Preço dos Diamantes",
+    subtitle = "Data frame diamonds do pacote ggplot2",
+    x = "Preço (dólares)",
+    y = "Densidade",
+    caption = "Fonte: Pacote ggplot2 da linguagem R"
+  ) +
+  theme_minimal()
+```
+
+Histograma com Densidade Sobreposta da variável price
+
+```{r}
+
+# Histograma com densidade empírica sobreposta para a variável price
+ggplot(
+  data = diamonds,
+  mapping = aes(x = price)
+) +
+  geom_histogram(
+    aes(y = after_stat(density)),
+    bins = k_price,
+    fill = "#E6F2FF",
+    color = "#2E5984"
+  ) +
+  geom_density(
+    alpha = .3,
+    fill = "#1B3A57"
+  ) +
+  labs(
+    title = "Distribuição do Preço dos Diamantes (Histograma e Densidade)",
+    subtitle = "Data frame diamonds do pacote ggplot2",
+    x = "Preço (dólares)",
+    y = "Densidade",
+    caption = "Fonte: Pacote ggplot2 da linguagem R"
+  ) +
+  theme_minimal()
+
+```
+
+Boxplot da variável price
+
+```{r}
+
+# Boxplot da variável price
+ggplot(
+  data = diamonds,
+  mapping = aes(x = price)
+) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(
+    title = "Boxplot da Distribuição do Preço dos Diamantes",
+    subtitle = "Data frame diamonds do pacote ggplot2",
+    x = "Preço (dólares)",
+    y = NULL,
+    caption = "Fonte: Pacote ggplot2 da linguagem R"
+  ) +
+  theme_minimal()
+
+```
+
+Parte 2 - Análise comparativa: Boxplots de price por clarity
+Boxplots de price por clarity (escala original)
+
+```{r}
+# Boxplots de price por clarity
+ggplot(
+  data = diamonds,
+  mapping = aes(x = clarity, y = price)
+) +
+  geom_boxplot() +
+  labs(
+    title = "Distribuição do Preço dos Diamantes por Clareza",
+    subtitle = "Data frame diamonds do pacote ggplot2",
+    x = "Clareza",
+    y = "Preço (dólares)",
+    caption = "Fonte: Pacote ggplot2 da linguagem R"
+  ) +
+  theme_minimal()
+```
+
+Boxplots de price por clarity (transformação log10)
+
+```{r}
+# Boxplots de price por clarity com transformação log10
+ggplot(
+  data = diamonds,
+  mapping = aes(x = clarity, y = price)
+) +
+  geom_boxplot() +
+  scale_y_log10() +
+  labs(
+    title = "Distribuição do Preço dos Diamantes por Clareza (Escala Logarítmica)",
+    subtitle = "Data frame diamonds do pacote ggplot2",
+    x = "Clareza",
+    y = "Preço (log10) em dólares",
+    caption = "Fonte: Pacote ggplot2 da linguagem R"
+  ) +
+  theme_minimal()
+
+```
+
+
+Comparando os padrões entre as categorias (price por clarity na escala logarítmica)
+Os boxplots transformados (log10(price)) permitem uma visualização mais clara das distribuições por clarity. Percebemos que, apesar da transformação, a assimetria positiva original é bastante reduzida, mas ainda há outliers. A mediana do preço dos diamantes geralmente aumenta à medida que a clareza melhora (de I1 para FL), o que faz sentido. A variabilidade dos preços também parece se manter relativamente constante entre as categorias de clareza, mas podemos notar alguns outliers em todas as categorias.
+
+## Parte 3 - Análise descritiva do Histograma + Densidade da Parte 1
+Analisando o histograma com densidade sobreposta da variável price:
+
+Forma: A distribuição do preço dos diamantes é unimodal, com um único pico, mas é fortemente assimétrica positiva (ou assimétrica à direita). Isso significa que a maioria dos diamantes se concentra em preços mais baixos, e há uma "cauda" longa de preços mais altos.
+
+Centro: O centro da distribuição, onde a maioria dos preços se concentra, parece estar em torno de 2.500 a 5.000 dólares.
+
+Dispersão: A distribuição apresenta uma alta dispersão, com uma ampla gama de preços. A cauda direita se estende bastante, indicando que existem diamantes com preços significativamente mais altos do que a maioria.
+
+Outliers: O formato alongado da cauda direita e a alta dispersão sugerem a presença de valores extremos (outliers), que são diamantes com preços muito elevados em comparação com a maioria. Esses valores puxam a média para a direita, tornando-a maior que a mediana.

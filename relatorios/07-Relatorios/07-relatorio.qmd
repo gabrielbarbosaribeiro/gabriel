@@ -1,0 +1,448 @@
+---
+title: "Organização de Dados com o Pacote tidyr"
+subtitle: "Tipos Básicos de *joins* do Pacote dplyr"
+lang: pt-BR
+author: "Gabriel Barbosa"
+date: 2025-05-16
+format: 
+  html:
+    theme: flatly
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  message: false
+  warning: false
+---
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura exibição de números
+options(digits = 8, scipen = 999)
+
+# carrega pacotes
+library(tidyverse)
+```
+
+
+
+# Pacote dplyr: Tipos Básicos de *joins* 
+
+
+## Joins no dplyr
+
+::: {.callout-note icon=false}
+## O que são joins?
+
+- **Joins** são operações que combinam duas tabelas de dados 
+
+- Em termos simples, joins são como "colar" duas tabelas lado a lado, 
+  combinando linhas que têm valores em comum, como um "código de cliente" 
+  ou "código de produto"
+
+- No pacote dplyr, temos funções específicas para cada tipo de join:
+
+  - `left_join()`: Mantém todas as linhas da tabela da esquerda
+  - `inner_join()`: Mantém apenas correspondências entre as tabelas
+  - `full_join()`: Mantém todas as linhas de ambas as tabelas
+  - `right_join()`: Mantém todas as linhas da tabela da direita
+
+- São essenciais quando precisamos combinar informações que estão separadas
+:::
+
+
+
+## Tabela produtos
+
+```{r style="font-size: 1.3em;"}
+# Cria a tabela de produtos
+produtos <- tribble(
+  ~codigo_produto, ~nome_produto,      ~preco_unitario, ~categoria,
+  "P001",         "Notebook Pro",      4500,           "Eletrônicos",
+  "P002",         "Smartphone X",      2800,           "Eletrônicos",
+  "P003",         "Monitor 24pol",     1200,           "Informática",
+  "P004",         "Mouse Gamer",       250,            "Informática",
+  "P005",         "Cadeira Ergonômica", 950,           "Mobiliário"
+)
+
+# exibe a tabela
+produtos
+```
+:::
+
+
+
+## Tabela vendas
+
+```{r style="font-size: 1.3em;"}
+# Cria a tabela de vendas
+vendas <- tribble(
+  ~id_venda, ~codigo_produto, ~id_cliente, ~data_venda,  ~quantidade,
+  1,         "P001",          "C001",      "2025-04-15", 1,
+  2,         "P002",          "C002",      "2025-04-16", 2,
+  3,         "P003",          "C001",      "2025-04-18", 2,
+  4,         "P002",          "C003",      "2025-04-20", 1,
+  5,         "P006",          "C002",      "2025-04-22", 3,
+  6,         "P004",          "C004",      "2025-04-23", 4
+)
+
+# exibe a tabela
+vendas
+```
+
+
+
+## Tabela Clientes
+
+```{r}
+# Cria a tabela de clientes 
+clientes <- tribble(
+  ~id_cliente, ~nome_cliente,     ~cidade,
+  "C001",      "Empresa Alpha",   "São Paulo",
+  "C002",      "Empresa Beta",    "Rio de Janeiro",
+  "C003",      "João Silva",      "Belo Horizonte",
+  "C005",      "Maria Oliveira",  "Recife"
+)
+
+# exibe a tabela
+clientes
+```
+
+
+
+## Dados de Exemplo para Aula
+
+```{r}
+produtos
+```
+
+```{r}
+vendas
+```
+
+```{r}
+clientes
+```
+
+**Observe que há dados "imperfeitos"**: 
+
+- Produto "P006" está nas vendas, mas não na tabela de produtos
+- Cliente "C004" está nas vendas, mas não na tabela de clientes
+- Cliente "C005" está na tabela de clientes, mas não tem vendas
+
+
+
+## Exemplo: Left Join
+
+Left Join entre Vendas e Produtos:
+
+```{r}
+# Left join: todas as vendas, mesmo sem correspondência na tabela de produtos
+# Passo 1: Pegamos a tabela 'vendas' 
+# Passo 2: Mantemos TODAS as vendas e adicionamos dados de produtos quando existirem
+vendas_produtos_left <- vendas %>%
+  left_join(produtos, by = "codigo_produto")
+
+# Visualizando o resultado
+vendas_produtos_left
+```
+
+**Observe que**:
+
+- Agora a venda do produto "P006" (id_venda 5) **aparece** no resultado
+
+- Como esse produto não existe na tabela de produtos, a coluna de produtos 
+  contém NA
+  
+- O left_join é o join mais comum - preserva todos os 
+  registros da tabela principal
+
+
+
+## Exemplo: Inner Join
+
+Inner Join entre Vendas e Produtos:
+
+```{r}
+# Inner join: apenas vendas de produtos que existem no cadastro
+# Passo 1: Pegamos a tabela 'vendas'
+# Passo 2: Combinamos com a tabela 'produtos' usando codigo_produto
+vendas_produtos <- vendas %>%
+  inner_join(produtos, by = "codigo_produto")
+
+# Visualizando o resultado
+vendas_produtos
+```
+
+**Observe que**:
+
+- A venda do produto "P006" (id_venda 5) **não aparece** no resultado
+- Isso acontece porque esse produto não existe na tabela de produtos
+- O inner_join mantém apenas as vendas de produtos que existem no cadastro
+
+
+
+## Exemplo: Full Join
+
+Full Join entre Vendas e Produtos:
+
+```{r}
+# Full join: todas as vendas e todos os produtos
+# Passo 1: Pegamos a tabela 'vendas'
+# Passo 2: Combinamos com produtos mantendo TUDO de ambas as tabelas
+completo_vendas_produtos <- vendas %>%
+  full_join(produtos, by = "codigo_produto")
+
+# Visualizando o resultado
+completo_vendas_produtos
+```
+
+**Observe que**:
+
+- A venda do produto "P006" que não existe na tabela de produtos aparece 
+  com NAs
+  
+- O produto "P005" que não tem vendas também aparece com NAs
+
+- O full_join é útil para ver "tudo junto" e identificar inconsistências
+
+
+
+## Exemplo: Right Join
+
+Right Join entre Vendas e Produtos:
+
+```{r}
+# Right join: todos os produtos, mesmo sem vendas
+# Passo 1: Pegamos a tabela 'vendas'
+# Passo 2: Combinamos com TODOS os produtos, mesmo os sem vendas
+produtos_vendas_right <- vendas %>%
+  right_join(produtos, by = "codigo_produto")
+
+# Visualizando o resultado
+produtos_vendas_right
+```
+
+**Observe que**:
+
+- Agora o produto "P005" (Cadeira Ergonômica) **aparece** no resultado
+- Como esse produto não tem vendas, as colunas de vendas aparecem com NA
+- O right_join é útil para identificar produtos sem movimento
+
+
+
+## Exemplo: Combinando Três Tabelas
+
+Combinando vendas, produtos e clientes:
+
+```{r}
+# Passo 1: Combinamos vendas com produtos
+# Passo 2: Depois combinamos o resultado com clientes
+relatorio_completo <- vendas %>%
+  # Primeiro, adicionamos informações de produtos
+  left_join(produtos, by = "codigo_produto") %>%
+  # Depois, adicionamos informações de clientes
+  left_join(clientes, by = "id_cliente") %>%
+  # Selecionamos apenas as colunas mais importantes para o relatório
+  select(
+    id_venda, data_venda, 
+    id_cliente, nome_cliente, cidade,
+    codigo_produto, nome_produto, 
+    quantidade, preco_unitario
+  )
+
+# Visualizando o resultado
+print(relatorio_completo, n = Inf)
+```
+
+**Observe como**:
+
+- Combinamos três tabelas em sequência
+- Usamos left_join para manter todas as vendas
+- Algumas informações têm NA quando não há correspondência
+
+
+
+## O Desafio dos Sistemas Reais
+
+Exemplo - Relatório de Vendas Integrado
+
+```{r}
+# Sistema de Cadastro de Produtos (departamento de Compras)
+produtos_cadastro <- tribble(
+  ~codigo,       ~descricao,        ~valor_unitario, ~categoria,
+  "P001",        "Notebook Pro",     4500,           "Eletrônicos",
+  "P002",        "Smartphone X",     2800,           "Eletrônicos",
+  "P003",        "Monitor 24pol",    1200,           "Informática"
+)
+
+# Sistema de Vendas (departamento Comercial)
+vendas_sistema <- tribble(
+  ~id_venda, ~cod_produto, ~data_venda,  ~qtd,
+  1,         "P001",       "2025-04-15", 1,
+  2,         "P002",       "2025-04-16", 2,
+  3,         "P003",       "2025-04-18", 2
+)
+
+# Integrando os sistemas com diferentes nomenclaturas
+relatorio_vendas <- vendas_sistema %>%
+  left_join(produtos_cadastro, by = c("cod_produto" = "codigo")) %>%
+  select(id_venda, data_venda, cod_produto, descricao, qtd, valor_unitario) %>%
+  mutate(valor_total = qtd * valor_unitario) %>%
+  arrange(data_venda)
+
+# Resultado: um relatório integrado
+print(relatorio_vendas, n = Inf)
+```
+
+**Observação**: Esta situação é extremamente comum.
+
+
+
+## Exercício 1
+
+Identifique o join mais adequado para cada cenário
+
+Para cada situação abaixo, identifique qual tipo de join seria mais 
+apropriado: **left_join**, **inner_join**, **full_join** ou **right_join**: 
+
+1. left_join
+
+2. righ_join
+
+3. full_join
+
+4. inner_join
+
+**Dica**: Pense em quais tabelas são "obrigatórias" e quais são "opcionais" 
+em cada cenário!
+
+
+
+## Exercício 2 
+
+Você precisa criar uma lista simples que mostre, para cada venda, o 
+nome do produto vendido:
+
+1. Una as tabelas de vendas e produtos
+
+2. Selecione apenas as colunas `id_venda`, `data_venda`, `nome_produto` e 
+   `quantidade`
+   
+3. Ordene por data_venda
+
+Complete o código:
+
+```{r}
+lista_vendas_produtos <- vendas %>%
+  # 1. Escolha o tipo de join adequado para manter todas as vendas
+  left_join(produtos, by = "codigo_produto") %>%
+  # 2. Selecione apenas as colunas importantes
+  select(
+    id_venda, 
+    data_venda, 
+    nome_produto,
+    quantidade
+  ) %>%
+  # 3. Ordene por data da venda
+  arrange(data_venda)
+lista_vendas_produtos
+```
+
+**Dica**: Pense em qual tipo de join deve usar. Você quer manter todas as 
+vendas mesmo sem produto cadastrado ou apenas as vendas de produtos 
+conhecidos?
+
+
+
+## Exercício 3
+
+Crie um relatório que mostre todos os clientes, mesmo aqueles que não 
+fizeram compras:
+
+1. Una as tabelas de clientes e vendas de forma a manter todos os clientes
+
+2. Selecione as colunas `id_cliente`, `nome_cliente`, `cidade`, `id_venda` e 
+`data_venda`
+
+3. Ordene por nome_cliente
+
+Complete o código:
+
+```{r}
+#| eval: false
+# Complete o código
+relatorio_clientes <- clientes %>%
+  # 1. Escolha o tipo de join adequado para manter todos os clientes
+  left_join(vendas, by = "id_cliente") %>%
+  # 2. Selecione apenas as colunas importantes
+  select(
+    id_cliente,
+    nome_cliente,
+    cidade,
+    id_venda,
+    data_venda
+  ) %>%
+  # 3. Ordene por nome do cliente
+  arrange(nome_cliente)
+relatorio_clientes
+```
+
+**Dica**: Como queremos manter todos os clientes, mesmo os que não 
+fizeram compras, qual tipo de join devemos usar?
+
+
+
+## Exercício 4
+
+- Qual função de join e quais operações de manipulação de 
+dados seriam necessárias para criar um relatório financeiro que mostre 
+todas as vendas com o valor total calculado (quantidade × preço unitário), 
+incluindo vendas de produtos que podem não estar cadastrados?
+
+- O diretor financeiro solicitou um relatório simplificado que mostre o 
+valor total de cada venda:
+
+Complete o código:
+
+```{r}
+relatorio_financeiro <- vendas %>%
+  # Combine vendas com produtos usando left_join
+  left_join(produtos, by = "codigo_produto") %>%
+  # Calcule o valor total da venda
+  mutate(valor_total = quantidade * preco_unitario) %>%
+  # Selecione apenas as colunas relevantes para o relatório
+  select(
+    id_venda, 
+    data_venda,
+    codigo_produto, 
+    nome_produto,
+    quantidade, 
+    preco_unitario,
+    valor_total
+  ) %>%
+  # Ordene do maior valor total para o menor
+  arrange(desc(valor_total))
+relatorio_financeiro
+```
+
+**Perguntas para reflexão:** 
+
+1. Qual foi a venda de maior valor?
+2. O que acontece com as vendas de produtos não cadastrados?
+3. Como este relatório poderia ajudar na tomada de decisões comerciais?
+
+
+
+
+
+
+
+
+
+
+
+

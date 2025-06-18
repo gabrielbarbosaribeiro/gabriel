@@ -1,0 +1,215 @@
+---
+title: "Soluções da Lista de Exercícios - Treinamento para a Avaliação 2"
+subtitle: "Introdução à Ciência de Dados <br> Bacharelado em administração"
+author: "Prof. Dr. Washington S. da Silva"
+title-block-banner: "#27445C"
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-location: left
+    code-copy: true
+    css: styles.css
+lang: "pt"
+date: 2025-06-13
+execute: 
+  echo: true
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura exibição de números
+options(digits = 5, scipen = 999)
+
+# carrega pacotes
+library(tidyverse)  # Inclui dplyr, tidyr, ggplot2...
+library(scales)     # pacote do tidyverse para formatação de números
+library(tidyquant)  # para importar dados do Yahoo Finance
+```
+
+
+
+## Tópico: Distribuição Normal — Probabilidades e Quantis
+
+### Exercício 1
+
+
+
+## Solução do Exercício 1
+
+1. Qual a probabilidade de um pedido ser entregue em até **7 dias**?
+
+```{r}
+# seu código aqui
+```
+
+2. Qual a probabilidade de a entrega demorar **mais de 10 dias**?
+
+```{r}
+# seu código aqui
+```
+
+3. Qual é o prazo máximo de entrega para que **80%** dos pedidos sejam 
+entregues até essa data?
+
+```{r}
+# seu código aqui
+```
+
+
+4. Forneça uma interpretação para os resultados obtidos em cada item.
+
+
+
+
+
+## Tópico: Valor-em-Risco (VaR) com Distribuição Normal
+
+### Exercício 2
+
+
+```{r}
+# seu código aqui
+```
+
+
+Cálculo do VaR percentual:
+
+```{r}
+# seu código aqui
+```
+
+VaR em reais (valor absoluto da perda):
+
+```{r}
+# seu código aqui
+```
+
+ 
+**Interpretação:**
+
+
+
+
+
+## Tópico: Simulação de Monte Carlo e Valor Esperado
+
+### Exercício 3
+
+1. Calcule o prêmio **justo** (valor esperado).
+
+```{r}
+# seu código aqui
+```
+
+2. Determine o prêmio com a margem de lucro.
+
+```{r}
+# seu código aqui
+```
+
+3. Simule 10.000 residências seguradas e estime o valor médio pago.
+
+```{r}
+# seu código aqui
+```
+
+
+**Interpretação:**
+
+
+
+
+## Tópico: Quantis e Tomada de Decisão em Administração
+
+### Exercício 4
+
+Os salários de 30 trainees são (execute o código abaixo para criar 
+o vetor `salarios`):
+
+```{r}
+salarios <- c(2300, 2500, 2200, 2400, 2800, 3000, 3200, 2500, 2100, 2700,
+              2600, 2300, 2900, 3100, 2000, 2800, 2600, 2500, 2750, 2250,
+              2900, 2300, 2600, 2700, 2950, 2450, 2550, 2650, 2400, 2750)
+```
+
+
+1. Calcule os quartis 1 (Q1), 2 (mediana) e 3 (Q3).
+
+```{r}
+# seu código aqui
+```
+
+2. Qual o salário máximo que **80%** dos trainees recebem?
+
+Estimativa do percentil 80:
+
+```{r}
+# seu código aqui
+```
+
+
+3. Como essas informações podem auxiliar o setor de RH?
+
+
+
+
+## Tópico: Correlação e Diversificação de Carteiras
+
+### Exercício 5
+
+1. Use `tq_get()` para baixar as séries de preços das ações da Vale 
+(VALE3) e do Bradesco (BBDC4) desde `2024-01-01`
+
+```{r}
+# seu código aqui
+```
+
+2. Organize os dados com `pivot_wider()`.
+
+```{r}
+# seu código aqui
+```
+
+3. Calcule a **correlação de Pearson** entre os preços e 
+interprete sua magnitude usando os critérios propostos 
+por Cohen (1988).
+
+Estimativa do coeficiente de correlação de Pearson:
+
+```{r}
+# seu código aqui
+```
+
+Interpretação da magnitude usando a função interpret_r do pacote 
+effectsize:
+
+```{r}
+# seu código aqui
+```
+
+**Interpretação:**
+
+
+
+4. Crie um gráfico de dispersão com reta de regressão para as 
+séries de preços e interprete do gráfico considerando o coeficiente de 
+correlação de Pearson estimado
+
+```{r}
+# seu código aqui
+```
+
+
+**Interpretação:**
+
+
+5. Avalie se uma carteira formada por essas duas ações poderia ser 
+considerada bem diversificada, com base na correlação estimada e 
+na análise do gráfico de dispersão.
+
+**Interpretação:**

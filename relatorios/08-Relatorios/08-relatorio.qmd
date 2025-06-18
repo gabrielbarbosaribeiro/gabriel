@@ -1,0 +1,242 @@
+---
+title: "Organização de Dados com o Pacote tidyr"
+subtitle: "Fundamentos de Probabilidade para Decisões - Parte 1"
+lang: pt-BR
+author: "Gabriel Barbosa"
+date: 2025-05-21
+format: 
+  html:
+    theme: flatly
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  message: false
+  warning: false
+---
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura exibição de números
+options(digits = 8, scipen = 999)
+
+# carrega pacotes
+library(tidyverse)
+library(patchwork)
+library(yfR)
+```
+
+
+
+# Incerteza e Probabilidade 
+
+
+## Somatório e Produtório: Matemática e Implementação em R
+
+- Operador Somatório ($\sum$):
+
+```{r}
+sum(c(3, 7, 2))
+```
+
+
+```{r}
+cumsum(c(3, 7, 2)) 
+```
+
+
+- Operador Produtório ($\prod$):
+
+```{r}
+prod(c(2, 3, 4))
+```
+
+
+```{r}
+cumprod(c(2, 3, 4))
+```
+
+
+
+
+## Simulação: Preço de uma Ação como Passeio Aleatório
+
+```{r}
+#| echo: false
+
+# Fixamos uma semente para tornar os resultados reproduzíveis
+# (isso nos permitirá obter os mesmos valores "aleatórios" em cada execução)
+set.seed(42)
+
+# Número de períodos a simular
+dias <- 1000  
+
+# Geramos os epsilon (ε_i) - as variáveis aleatórias que representam retornos diários
+# Na versão multiplicativa, cada epsilon representa uma variação percentual do preço
+# Usamos valores menores que na versão aditiva, pois agora representam percentuais
+epsilon <- rnorm(dias, mean = 0.0005, sd = 0.01)  # média de 0.05% e desvio-padrão de 1%
+
+# Preço inicial (P_0 na fórmula matemática)
+preco_inicial <- 100
+
+# Calculamos o passeio aleatório multiplicativo: P_n = P_0 * ∏(1 + ε_i)
+# Onde ∏ representa o produto acumulado (assim como ∑ representa soma acumulada)
+# A função cumprod() calcula esse produto acumulado: (1+ε₁), (1+ε₁)*(1+ε₂), etc.
+precos <- preco_inicial * cumprod(1 + epsilon)
+
+# Organizamos os dados para visualização
+dados_precos <- tibble(
+  dia = 1:dias,
+  preco = precos
+)
+
+# Visualizamos a trajetória do passeio aleatório multiplicativo
+ggplot(dados_precos, aes(x = dia, y = preco)) +
+  geom_line(color = "blue", size = 1) +
+  labs(title = "Simulação de Preço de Ativo: Passeio Aleatório Multiplicativo",
+       x = "Dias de Negociação", 
+       y = "Preço (R$)") +
+  theme_minimal()
+```
+
+
+
+
+## Exemplo: Preço da Ação da Petrobrás 
+
+```{r}
+#| echo: false
+
+# 1. Carrega o pacote yfR (Yahoo Finance in R)
+# O pacote 'yfinancer' parece ser um erro de digitação ou um pacote que não existe mais
+# O pacote correto para dados do Yahoo Finance geralmente é 'yfR' ou 'quantmod'
+# Vamos usar o 'yfR' como base, assumindo que foi a intenção original.
+# Se você tiver outro pacote em mente, por favor, me avise!
+library(yfR) # Corrigido: 'yfinancer' para 'yfR'
+
+# 2. Configura os parâmetros da consulta:
+# Ticker: código da ação na bolsa (PETR4.SA = Petrobras ações preferenciais)
+# Período: define intervalo de 1000 dias até hoje usando função Sys.Date()
+meu_ticker <- c('PETR4.SA')
+first_date <- Sys.Date() - 1000 # Data inicial (1000 dias atrás)
+last_date <- Sys.Date() # Data final (hoje)
+
+# 3. Obtém os dados históricos da ação utilizando a API do Yahoo Finance
+# Retorna dataframe com preços, volumes e outras informações
+# O apóstrofo após 'yf_history' foi removido
+df_petro <- yf_history(tickers = meu_ticker,
+                       first_date = first_date,
+                       last_date = last_date)
+
+# 4. Cria gráfico de linha da série temporal de preços ajustados
+# Certifique-se de que o pacote 'ggplot2' esteja carregado para usar a função ggplot
+library(ggplot2) # Adicionado para garantir que ggplot2 esteja disponível
+
+ggplot(df_petro, aes(x = ref_date, y = price_adjusted)) +
+  geom_line(color = "blue", size = 1) +
+  labs(title = "Preços Diários da Ação da Petrobrás - PETR4.SA",
+       subtitle = "Período: Últimos 1000 dias",
+       caption = "Fonte: Yahoo Finance",
+       x = NULL,
+       y = "Preço") +
+  theme_minimal()
+```
+
+
+
+
+## Preços vs. Retornos com Dados Reais da Petrobrás
+
+```{r}
+#| echo: false
+
+# Preparar os dados da Petrobrás para a análise
+dados_petrobras <- df_petro %>%
+  # Garantir que os dados estão ordenados por data
+  arrange(ref_date) %>%
+  # Calcular os retornos diários percentuais
+  mutate(
+    retorno = c(NA, diff(price_adjusted) / price_adjusted[-length(price_adjusted)])
+  ) %>%
+  # Remover o primeiro valor NA dos retornos
+  filter(!is.na(retorno))
+
+# Criar visualização do preço ao longo do tempo
+p1 <- ggplot(dados_petrobras, aes(x = ref_date, y = price_adjusted)) +
+  geom_line(color = "blue", size = 1) +
+  labs(title = "Preços Diários da Ação da Petrobrás - PETR4.SA",
+       x = NULL, 
+       y = "Preço (R$)") +
+  theme_minimal()
+
+# Criar visualização dos retornos diários
+p2 <- ggplot(dados_petrobras, aes(x = ref_date, y = retorno)) +
+  geom_line(color = "darkred", size = 0.8) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(title = "Retornos Diários da Petrobrás- PETR4.SA",
+       caption = "Fonte: Yahoo Finance",
+       x = NULL, 
+       y = "Retorno Diário") +
+  theme_minimal()
+
+# Visualizar gráficos em uma coluna usando patchwork
+# O operador "/" coloca os gráficos um abaixo do outro
+p1 / p2
+```
+
+
+
+
+## Exercício 1
+
+Para cada uma das situações abaixo, identifique a variável aleatória 
+descrita, classifique-a como **discreta** ou **contínua**:
+
+1. O número mensal de cancelamentos de assinaturas em uma plataforma 
+de streaming
+
+**Resposta:** 
+
+2. O tempo de entrega (em horas) para pedidos online de uma loja de 
+e-commerce
+
+**Resposta:** 
+
+3. A variação percentual diária no preço das ações de uma empresa
+
+**Resposta:** 
+
+4. O número de unidades vendidas de um novo produto no primeiro mês 
+após seu lançamento
+
+**Resposta:** 
+
+
+
+
+## Exercício 2
+
+Seguindo o exemplo apresentado na aula sobre o preço da ação da 
+Petrobrás (PETR4.SA), realize uma análise semelhante para outra 
+empresa brasileira de sua escolha. Utilize o pacote yfR conforme 
+demonstrado para baixar os dados dos últimos 200 dias de negociação.
+
+1. Escolha uma empresa brasileira listada na B3 e 
+descubra seu *ticker* (símbolo da ação)
+
+2. Utilize o código apresentado na aula como referência para baixar 
+  os dados históricos de preços usando o pacote yfR.
+
+3. Crie um gráfico da série de preços ajustados ao longo do tempo. 
+
+
+```{r}
+# seu código aqui
+```
+
+
+
+

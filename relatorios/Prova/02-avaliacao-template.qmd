@@ -1,0 +1,427 @@
+---
+title: "Avaliação 2 - Valor: 33 pontos"
+subtitle: "Introdução à Ciência de Dados - 2025 <br> Bacharelado em Administração"
+author:   
+  - Alexia luiza
+  - Caroline Lopes
+  - Arthur Henrique
+  - Gabriel Rezene
+title-block-banner: "#27445C"
+format:
+  html:
+    embed-resources: true
+    page-layout: article
+    toc: true
+    toc-location: left
+lang: "pt"
+date: 2025-06-18
+date-format: long
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+
+```{r}
+#| label: setup
+#| echo: false
+
+# pacotes utilizados
+library(here)
+library(tidyverse)
+library(tidyquant)
+library(effectsize)
+```
+
+
+
+## Questão 1
+
+**a)**
+
+```{r}
+prob_sinistro <- 0.01
+indenizacao_sinistro <- 150000
+
+premio_puro <- prob_sinistro * indenizacao_sinistro
+
+
+print(premio_puro)
+
+```
+**b)**
+
+```{r}
+# Margem alvo sobre o prêmio puro
+margem <- 0.25
+
+# Cálculo do prêmio comercial
+premio_comercial <- premio_puro * (1 + margem)
+
+# Exibindo o resultado
+print(premio_comercial)
+
+```
+
+
+**c)** 
+
+Simulação dos custos médios com 10 residências seguradas:
+
+```{r}
+
+# Valores
+custo_sem_sinistro <- 0
+custo_com_sinistro <- 150000
+prob_nao_sinistro <- 0.99
+prob_sinistro <- 0.01
+
+## fixa a semente para reprodutibilidade
+set.seed(2025)
+
+## simula o custo para 10 residências seguradas
+custos_10 <- sample(
+  c(custo_sem_sinistro, custo_com_sinistro),        # preencha com os dois valores de custos possíveis: sem sinistro e com sinistro
+  size = 10,          # número total de residências a serem simuladas
+  replace = TRUE,       # indique se a amostragem será com reposição
+  prob = c(prob_nao_sinistro, prob_sinistro)  # probabilidades de cada um dos dois resultados (sinistro e não sinistro)
+  ) 
+
+## estimativa do custo médio por apólice com 10 residências seguradas
+mean(custos_10)         # função para calcular a média do vetor simulado
+```
+
+
+Simulação dos custos médios com 100 residências seguradas:
+
+```{r}
+
+set.seed(2025) # Mantendo a mesma semente para comparabilidade, se desejar. Ou uma nova semente.
+
+custos_100 <- sample(
+  c(custo_sem_sinistro, custo_com_sinistro),
+  size = 100,
+  replace = TRUE,
+  prob = c(prob_nao_sinistro, prob_sinistro)
+)
+mean(custos_100)
+
+```
+
+
+Simulação dos custos médios com 1000 residências seguradas:
+
+```{r}
+set.seed(2025) # Mantendo a mesma semente.
+custos_1000 <- sample(
+  c(custo_sem_sinistro, custo_com_sinistro),
+  size = 1000,
+  replace = TRUE,
+  prob = c(prob_nao_sinistro, prob_sinistro)
+)
+mean(custos_1000)
+
+```
+
+
+**d)**
+
+A Lei dos Grandes Números afirma que, com o aumento do número de observações (como o número de apólices), a média dos resultados tende a se aproximar do valor esperado teórico (prêmio puro). No setor de seguros, isso permite:
+
+Previsibilidade do risco: Mesmo com riscos individuais incertos, grandes carteiras tornam os custos totais mais previsíveis.
+
+Precificação adequada: As seguradoras calculam prêmios justos e sustentáveis com base nessa previsibilidade.
+
+Viabilidade econômica: A LGN torna possível transformar incerteza individual em previsibilidade coletiva, sustentando o modelo de negócio do seguro.
+
+
+
+**e)**
+
+A franquia reduz o valor pago pela seguradora em cada sinistro. Exemplo: se o prejuízo é de R$ 150 mil e a franquia é R$ 50 mil, a seguradora paga R$ 100 mil.
+
+Essa redução impacta o custo esperado por apólice, que passa a ser:
+
+1% × R$ 100.000 = R$ 1.000
+
+Com isso, a seguradora pode:
+
+(a) Cobrar prêmios menores e ser mais competitiva;
+
+(b) Manter o prêmio e aumentar sua margem de lucro.
+
+Além disso, a franquia incentiva o segurado a cuidar melhor da propriedade, pois ele arca com parte do prejuízo.
+
+
+
+
+## Questão 2
+
+**a)** 
+
+```{r}
+
+# Valores
+media <- 6.5
+desvio_padrao <- 1.8
+
+# Probabilidade de o tempo de entrega ser superior a 8 dias
+
+prob_maior_8_dias <- pnorm(8, mean = media, sd = desvio_padrao, lower.tail = FALSE)
+
+# Exibindo o resultado
+
+print(prob_maior_8_dias)
+
+```
+
+
+**b)** 
+
+```{r}
+
+# prazo que cobre 90% dos casos
+prazo_90_porcento <- qnorm(0.90, mean = media, sd = desvio_padrao)
+
+# Exibindo o resultado
+print(prazo_90_porcento)
+```
+
+
+**c)** 
+
+```{r}
+
+# para a prazo de 7 dias
+
+prob_prazo_7_dias_cumprido <- pnorm(7, mean = media, sd = desvio_padrao)
+
+# Exibindo o resultado
+print(prob_prazo_7_dias_cumprido)
+```
+
+
+
+
+
+## Questão 3
+
+
+**a)** 
+
+```{r}
+# Valores
+media <- 18500
+desvio_padrao <- 2300
+vendas_loja <- 21800
+
+# Cálculo do score Z
+score_z <- (vendas_loja - media) / desvio_padrao
+
+# Exibindo o resultado
+print(score_z)
+```
+
+Reposta:
+
+
+**b)** 
+
+```{r}
+# Cálculo da probabilidade acumulada (percentil) usando o score Z
+# pnorm(q, mean = 0, sd = 1) para a distribuição normal padrão
+prob_acumulada <- pnorm(score_z, mean = 0, sd = 1)
+
+# Exibindo o resultado
+print(prob_acumulada)
+```
+
+
+Reposta:
+
+
+**c)**
+
+Sim, esse dia foi excepcional para essa loja.
+
+Como o percentil de vendas da loja é maior que 90%, ela se encontra dentro do grupo das 10% melhores vendas do dia. O percentual de 92,43% indica que a loja superou 92,43% das outras lojas em termos de vendas naquele dia, o que a coloca na faixa de desempenho excepcional definida pela empresa.
+
+
+
+## Questão 4
+
+**a)**
+
+```{r}
+# Dados do problema
+media_retorno <- 0.011  # 1.1%
+desvio_padrao <- 0.042  # 4.2%
+valor_investido <- 400000 # R$ 400.000
+
+# Cálculo
+quantil_z_99 <- qnorm(0.01)
+```
+
+Cálculo do VaR 99% percentual:
+
+```{r}
+var_percentual_99 <- media_retorno + (quantil_z_99 * desvio_padrao)
+
+print(var_percentual_99)
+```
+
+Cálculo do VaR 99% monetário (valor absoluto da perda):
+
+```{r}
+var_monetario_99 <- valor_investido * var_percentual_99
+
+print(var_monetario_99)
+
+```
+
+
+
+**b)**
+
+O VaR de 99% monetário significa que há apenas 1% de chance de que o portfólio sofra uma perda igual ou superior ao valor de 34682.64 (o valor calculado acima) em um único mês. Em 99% dos meses, a perda esperada será menor do que esse valor.
+
+
+**c)**
+
+Assimetria (Skewness):
+Retornos financeiros costumam ter assimetria negativa, ou seja, perdas grandes são mais prováveis do que ganhos grandes. A distribuição normal, sendo simétrica, não representa de forma adequada tal realidade, podendo desprezar o risco de perdas.
+
+Curtose (Caudas Pesadas):
+Retornos reais frequentemente apresentam caudas (extremos) mais pesadas do que a normal. Isso significa que eventos extremos (grandes perdas ou ganhos) são mais comuns do que o modelo normal prevê, levando a uma subestimação do risco pelo VaR.
+
+
+
+
+## Questão 5
+
+- [ ] A 
+
+- [ ] B 
+
+- [ ] C 
+
+- [x] D 
+
+- [ ] E 
+
+
+Por que as demais estão erradas?
+
+A - Incorreta: O gráfico não ranqueia os países só pela taxa (pontinhos roxos). Ele parece seguir mais o número total (barras laranja). Santa Lúcia tem taxa baixa, mas a primeira parte da frase está errada.
+
+B - Incorreta: Essa alternativa erra feio ao culpar a vítima, sugerindo que mulheres devem "evitar riscos". Organismos como ONU e CEPAL focam na responsabilidade do agressor e na proteção, não na restrição da liberdade feminina.
+
+C - Incorreta: Brasil, México e Argentina têm muitos casos em números absolutos, mas suas taxas (pontinhos roxos) não são as maiores. Países como Honduras, El Salvador e Trinidad e Tobago é que se destacam nas taxas.
+
+E - Incorreta: A frase está confusa e errada. O Brasil está alto em número absoluto, não taxa. E Honduras tem uma das maiores taxas relativas, não "menos ocorrências" que o Brasil. Os dados estão invertidos.
+
+## Questão 6
+
+
+**a)** 
+
+
+```{r}
+dados_precos <- c("PETR4.SA", "WEGE3.SA") %>%
+  tq_get(from = "2024-01-01") %>%
+  select(symbol, date, close) %>%
+  pivot_wider(names_from = symbol, values_from = close) %>%
+  rename(petrobras = "PETR4.SA", weg = "WEGE3.SA")
+
+head(dados_precos)
+```
+
+
+**b.1)** 
+   
+```{r}
+# cálculo dos retornos logarítmicos
+dados_ret <- dados_precos %>% 
+# a função `mutate()` adiciona as colunas de retornos
+mutate(ret_petrobras = log(petrobras / lag(petrobras)),
+     ret_weg       = log(weg       / lag(weg))) %>% 
+# drop_na remove a linha com retorno faltante (NA)
+drop_na()
+
+# exibição das primeiras linhas
+head(dados_ret)
+```
+
+
+
+**b.2)** 
+
+```{r}
+correlacao_retornos <- cor(dados_ret$ret_petrobras, dados_ret$ret_weg)
+
+print(correlacao_retornos)
+```
+
+
+**b.3)** 
+
+```{r}
+resultados_analise <- dados_ret %>%
+  summarize(
+    # Métricas para PETR4.SA
+    min_ret_petro   = min(ret_petrobras),
+    max_ret_petro   = max(ret_petrobras),
+    mean_ret_petro  = mean(ret_petrobras),
+    sd_ret_petro    = sd(ret_petrobras),
+
+    # Métricas para WEGE3.SA
+    min_ret_weg     = min(ret_weg),
+    max_ret_weg     = max(ret_weg),
+    mean_ret_weg    = mean(ret_weg),
+    sd_ret_weg      = sd(ret_weg),
+
+    # Correlação entre os retornos
+    correlacao_petro_weg = cor(ret_petrobras, ret_weg, use = "complete.obs")
+  )
+
+# Exibir os resultados de forma mais legível
+print(as.data.frame(lapply(resultados_analise, function(x) round(x, 4))))
+```
+
+**Interpretação:**
+
+Retornos Individuais (PETR4.SA e WEGE3.SA): A análise dos mínimos, máximos e médias dos retornos nos mostra a faixa de variação diária e o desempenho médio de cada ação no período. Por exemplo, a PETR4.SA teve um retorno diário médio de -4e-04, com variações extremas entre 0.0958 e 0.0701.
+
+Correlação (PETR4.SA e WEGE3.SA): A correlação de 0.1371 entre PETR4.SA e WEGE3.SA indica uma relação positiva. Isso significa que, na maior parte do tempo, quando o retorno de uma ação sobe, a outra também tende a subir, e vice-versa.
+
+
+
+**c)** 
+
+```{r}
+
+ggplot(dados_ret, aes(x = ret_petrobras, y = ret_weg)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") + 
+  
+  labs(
+    title = "Relação entre Retornos Diários da PETR4.SA e WEGE3.SA",
+    subtitle = paste0("Período: ", min(dados_ret$date), " a ", max(dados_ret$date)),
+    x = "Retorno PETR4.SA (Logarítmico)",
+    y = "Retorno WEGE3.SA (Logarítmico)",
+    caption = "Fonte: Yahoo Finance"
+  ) +
+  theme_minimal() 
+
+```
+
+**Interpretação:**
+
+Se a correlação_retornos for positiva (como provavelmente será),
+
+a nuvem de pontos tende a subir da esquerda para a direita, e a linha de regressão terá uma inclinação positiva. Isso significa que, em geral, quando o retorno da Petrobras sobe, o da Weg também tende a subir, e vice-versa. Se for negativa, a nuvem de pontos desceria.Se for perto de zero, os pontos estariam espalhados sem um padrão claro.
+
+**d)** 
+
+Para avaliar se juntar PETR4 e WEGE3 ajuda a diversificar seus investimentos, é crucial analisar como seus desempenhos se relacionam.Se for alta e positiva, a diversificação é limitada, pois os ativos se movem juntos. Se for próxima de zero, há alguma diversificação, pois os movimentos são independentes. Se for negativa, há maior potencial de diversificação, pois os ativos tendem a se mover em direções opostas, ajudando a reduzir o risco total da carteira.

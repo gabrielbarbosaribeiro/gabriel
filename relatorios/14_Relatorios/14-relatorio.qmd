@@ -1,0 +1,954 @@
+---
+title: "Análise Exploratória de Dados"
+subtitle: "Introdução à Inferência Estatística- Parte 1"
+lang: pt-BR
+author: "Gabriel Ribeiro"
+date: 2025-06-25
+format: 
+  html:
+    theme: flatly
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  echo: true
+  message: false
+  warning: false
+---
+
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura exibição de números
+options(digits = 5, scipen = 999)
+
+# carrega os pacotes necessários
+library(tidyverse)  # Inclui dplyr, tidyr, ggplot2...
+library(patchwork)  # Para combinar gráficos
+library(abjData)    # Dados municipais do PNUD
+library(sampling)   # Técnicas clássicas de amostragem
+```
+
+
+
+
+# População e Amostra 
+
+## Qualidade do Whisky: População e Amostra
+
+```{r}
+#| echo: false
+
+# Este código simula uma situação que todo analista enfrenta:
+# conhecer apenas uma pequena parte dos dados que realmente importam
+
+# Fixa a semente para garantir que todos obtenham exatamente os mesmos resultados
+# Isso é importante para fins didáticos
+set.seed(42)
+
+# POPULAÇÃO: Simula todos os 46.000 barris da destilaria
+# Na vida real, o analista NÃO teria acesso a estes dados completos
+# Estamos simulando apenas para fins ilustrativos
+populacao_barris <- tibble(
+  # Cria um ID único para cada barril (de 1 até 46.000)
+  barril_id = 1:46000,
+  
+  # Simula a pontuação real de qualidade de cada barril
+  # rnorm() gera números aleatórios seguindo distribuição normal
+  # mean = 7.2 significa que a qualidade média real é 7.2 pontos
+  # sd = 0.9 significa que o desvio padrão real é 0.9 pontos
+  pontuacao = rnorm(46000, mean = 7.2, sd = 0.9)
+) %>%
+  # Ajusta as pontuações para ficarem dentro de uma escala realista (1 a 10)
+  # pmin(10, ...) garante que nenhum valor seja maior que 10
+  # pmax(1, ...) garante que nenhum valor seja menor que 1
+  mutate(pontuacao = pmin(10, pmax(1, pontuacao)))
+
+# Calcula os PARÂMETROS POPULACIONAIS - os valores verdadeiros 
+# Na prática, estes valores são desconhecidos para o analista
+parametros_reais <- tibble(
+  # Nomeia cada característica que estamos medindo
+  `Característica` = c("Tamanho (N)", "Qualidade média (μ)", "Desvio padrão (σ)"),
+  
+  # Calcula os parámetros da população
+  `Valor Real` = c(
+    # Conta o número total de barris na população
+    format(nrow(populacao_barris), big.mark = "."),
+    # Calcula a média real de qualidade (parâmetro μ)
+    round(mean(populacao_barris$pontuacao), 2),
+    # Calcula o desvio padrão real (parâmetro σ)
+    round(sd(populacao_barris$pontuacao), 2)
+  ),
+  
+  # Explica o que cada valor significa 
+  `Significado` = c(
+    "Total de barris produzidos em 2024",
+    "Qualidade média de toda a produção",
+    "Variabilidade da qualidade dos barris"
+  )
+)
+
+# Mostra os parâmetros populacionais 
+parametros_reais
+
+# AMOSTRA: Simula o que o analista realmente faz na prática
+# slice_sample() seleciona aleatoriamente 50 barris da população completa
+# Isto representa o processo real de amostragem que um analista executaria
+amostra_barris <- populacao_barris %>%
+  slice_sample(n = 50)  # Seleciona exatamente 50 barris de forma aleatória
+
+# Calcula as ESTATÍSTICAS AMOSTRAIS - Estes são os valores que o analista 
+# realmente calcula e usa para fazer inferências
+estatisticas_observadas <- tibble(
+  # Nomeia cada estatística 
+  `Característica` = c("Tamanho (n)", "Qualidade média (x̄)", "Desvio- padrão (s)"),
+  
+  # Estimativas dos parâmetros populacionais baseadas na amostra
+  `Valor Calculado` = c(
+    # Conta quantos barris foram efetivamente testados
+    nrow(amostra_barris),
+    # Calcula a média da amostra (estatística x̄) 
+    # Esta é nossa melhor estimativa de μ
+    round(mean(amostra_barris$pontuacao), 2),
+    # Calcula o desvio padrão da amostra (estatística s)
+    # Esta é nossa melhor estimativa de σ
+    round(sd(amostra_barris$pontuacao), 2)
+  ),
+  
+  # Significado de cada estatística
+  `Interpretação` = c(
+    "amostra",
+    "estimativa de μ",
+    "estimativa do σ"
+  )
+)
+
+# exibe as estatísticas amostrais
+estatisticas_observadas
+```
+
+
+
+
+## Comparação: Parâmetros vs Estimativas
+
+```{r}
+#| echo: false
+
+# Cria uma tabela comparativa lado a lado para visualizar a qualidade das estimativas
+comparacao_completa <- tibble(
+  # Lista as medidas que estamos comparando
+  Medida = c("Tamanho", "Qualidade Média", "Desvio Padrão"),
+  
+  # Coluna com valores populacionais (que seriam desconhecidos na prática)
+  # Incluímos os símbolos matemáticos para reforçar a notação
+  `População` = c(
+    # Formata o tamanho populacional com separador de milhares
+    paste("N =", format(nrow(populacao_barris), big.mark = ".")),
+    # Mostra a média populacional verdadeira (μ)
+    paste("μ =", round(mean(populacao_barris$pontuacao), 2)),
+    # Mostra o desvio padrão populacional verdadeiro (σ)
+    paste("σ =", round(sd(populacao_barris$pontuacao), 2))
+  ),
+  
+  # Coluna com valores amostrais (o que o analista realmente calcula e conhece)
+  `Amostra` = c(
+    # Mostra o tamanho da amostra
+    paste("n =", nrow(amostra_barris)),
+    # Mostra a média amostral (x̄) - nossa estimativa de μ
+    paste("x̄ =", round(mean(amostra_barris$pontuacao), 2)),
+    # Mostra o desvio padrão amostral (s) - nossa estimativa de σ
+    paste("s =", round(sd(amostra_barris$pontuacao), 2))
+  ),
+  
+  # Avalia quão boa é cada estimativa
+  # Esta avaliação nos ajuda a entender a qualidade da amostragem
+  `Qualidade da Estimativa` = c(
+    # Para o tamanho, mostramos a proporção que a amostra representa
+    "Amostra = 0,11% da população",
+    
+    # Para a média, avaliamos se a diferença é pequena (< 0.2 pontos)
+    # abs() calcula o valor absoluto da diferença
+    ifelse(abs(mean(amostra_barris$pontuacao) - mean(populacao_barris$pontuacao)) < 0.2, 
+           "Boa estimativa", "Estimativa razoável"),
+    
+    # Para o desvio padrão, usamos o mesmo critério (< 0.2 pontos de diferença)
+    ifelse(abs(sd(amostra_barris$pontuacao) - sd(populacao_barris$pontuacao)) < 0.2, 
+           "Boa estimativa", "Estimativa razoável")
+  )
+)
+
+# Exibe a tabela comparativa completa
+comparacao_completa
+```
+
+
+
+
+## Verificação Visual da Representatividade
+
+```{r}
+#| label: visualizacao-comparativa
+#| echo: false
+
+
+# Para a população, usamos apenas uma subamostra para facilitar a visualização
+# slice_sample(n = 2000) pega 2000 barris aleatoriamente para o gráfico
+# (plotar todos os 46.000 pontos deixaria o gráfico muito pesado)
+dados_pop_visual <- populacao_barris %>% 
+  slice_sample(n = 2000) %>%
+  # Adiciona rótulo para identificar nos gráficos
+  mutate(grupo = "População (N = 46.000)")
+
+# Para a amostra, usamos todos os 50 barris coletados
+dados_amostra_visual <- amostra_barris %>%
+  # Adiciona rótulo correspondente
+  mutate(grupo = "Amostra (n = 50)")
+
+# Calcula as médias para adicionar linhas de referência nos gráficos
+# Estas linhas ajudam a comparar visualmente os centros das distribuições
+media_pop <- mean(populacao_barris$pontuacao)      # Média populacional (μ)
+media_amostra <- mean(amostra_barris$pontuacao)    # Média amostral (x̄)
+
+# Cria o gráfico da distribuição populacional
+p1 <- ggplot(dados_pop_visual, aes(x = pontuacao)) +
+  # geom_density() cria uma curva suave mostrando a forma da distribuição
+  # fill e alpha controlam a cor e transparência
+  geom_density(fill = "#bdc9e1", alpha = 0.7, color = "#2c3e50", linewidth = 1) +
+  
+  # Adiciona linha vertical na média populacional
+  # Esta linha mostra onde está o centro "verdadeiro" da distribuição
+  geom_vline(xintercept = media_pop, 
+             linetype = "dashed", color = "#2c3e50", linewidth = 1.2) +
+  
+  # Adiciona texto mostrando o valor da média populacional
+  # annotate() permite colocar texto em posição específica do gráfico
+  annotate("text", x = media_pop + 0.3, y = 0.35, 
+           label = paste("μ =", round(media_pop, 2)), 
+           color = "#2c3e50", hjust = 0, size = 4, fontface = "bold") +
+  
+  # Define títulos e rótulos do gráfico
+  labs(
+    title = "Distribuição da População",
+    subtitle = "Qualidade real de todos os barris (desconhecida na prática)",
+    x = "Pontuação de Qualidade", y = "Densidade"
+  ) +
+  theme_minimal()
+
+# Cria o gráfico da distribuição amostral
+p2 <- ggplot(dados_amostra_visual, aes(x = pontuacao)) +
+  # geom_histogram() mostra a distribuição através de barras
+  # bins = 12 divide os dados em 12 intervalos (adequado para n=50)
+  geom_histogram(bins = 12, fill = "#fd8d3c", alpha = 0.8, color = "white") +
+  
+  # Adiciona linha vertical na média amostral
+  # Esta linha mostra onde está o centro da nossa amostra
+  geom_vline(xintercept = media_amostra, 
+             color = "#d73027", linewidth = 1.2) +
+  
+  # Adiciona texto mostrando o valor da média amostral
+  annotate("text", x = media_amostra + 0.3, y = 4.5, 
+           label = paste("x̄ =", round(media_amostra, 2)), 
+           color = "#d73027", hjust = 0, size = 4, fontface = "bold") +
+  
+  # Define títulos e rótulos do gráfico
+  labs(
+    title = "Distribuição da Amostra",
+    subtitle = "Qualidade observada nos barris testados (dados disponíveis)",
+    x = "Pontuação de Qualidade", y = "Frequência"
+  ) +
+  theme_minimal()
+
+# Combina os dois gráficos verticalmente usando o operador / do patchwork
+# Isso permite comparar visualmente as duas distribuições
+p1 / p2
+```
+
+
+
+## Exemplo: Satisfação de Clientes
+
+Analista de e-commerce com 50.000 clientes ativos precisa estimar 
+satisfação média para estratégias de retenção. Entrevistar todos 
+seria proibitivo. Solução: amostra de 80 clientes para obter uma
+estimativa confiável.
+
+
+```{r}
+#| echo: false
+
+# Este exemplo mostra uma situação muito comum em empresas:
+# precisar conhecer características de uma grande base de clientes
+# usando apenas uma pequena amostra por questões de custo e tempo
+
+# Fixa semente para reprodutibilidade dos resultados didáticos
+set.seed(123)
+
+# Simula a base completa de clientes da empresa
+# Na realidade, esta seria a base de dados real da empresa
+base_clientes <- tibble(
+  # Cria ID único para cada um dos 50.000 clientes
+  cliente_id = 1:50000,
+  
+  # Simula nível de satisfação de cada cliente
+  # rnorm() gera valores seguindo distribuição normal
+  # mean = 7.5 indica que a satisfação média real é 7.5 pontos
+  # sd = 1.2 indica que o desvio padrão real é 1.2 pontos
+  satisfacao = rnorm(50000, mean = 7.5, sd = 1.2)
+) %>%
+  # Ajusta valores para ficarem na escala válida de satisfação (0 a 10)
+  # pmax(0, ...) garante que nenhum valor seja negativo
+  # pmin(10, ...) garante que nenhum valor seja maior que 10
+  mutate(satisfacao = pmax(0, pmin(10, satisfacao)))
+
+# Calcula os PARÂMETROS POPULACIONAIS - o que queremos descobrir
+# Em uma situação real, estes valores seriam completamente desconhecidos
+parametros_satisfacao <- tibble(
+  # Lista as características que queremos conhecer
+  `Característica` = c(
+    "Total de clientes", "Satisfação média (μ)", "Desvio padrão (σ)", 
+    "% muito satisfeitos (≥8)"
+  ),
+  
+  # Calcula os valores populacionais verdadeiros
+  `Valor Verdadeiro` = c(
+    # Formata o número total com separador de milhares
+    format(nrow(base_clientes), big.mark = "."),
+    # Calcula a satisfação média populacional real (parâmetro μ)
+    round(mean(base_clientes$satisfacao), 3),
+    # Calcula o desvio padrão populacional real (parâmetro σ)
+    round(sd(base_clientes$satisfacao), 3),
+    # Calcula a proporção real de clientes muito satisfeitos
+    # mean(base_clientes$satisfacao >= 8) conta a proporção com satisfação ≥ 8
+    paste0(round(mean(base_clientes$satisfacao >= 8) * 100, 1), "%")
+  )
+)
+
+# Mostra as características populacionais (desconhecidas na prática)
+parametros_satisfacao
+
+# PESQUISA: Simula o processo de coleta de dados que o analista executaria
+# slice_sample(n = 80) seleciona aleatoriamente 80 clientes para entrevistar
+amostra_clientes <- base_clientes %>%
+  slice_sample(n = 80)
+
+# Calcula os RESULTADOS DA PESQUISA - estatísticas amostrais disponíveis
+resultados_pesquisa <- tibble(
+  # Lista os resultados que a pesquisa fornece
+  `Resultado` = c(
+    "Clientes entrevistados", "Satisfação média (x̄)", "Desvio padrão (s)", 
+    "% muito satisfeitos"
+  ),
+  
+  # Calcula os valores que o analista realmente obtém da amostra
+  `Valor` = c(
+    # Conta quantos clientes foram efetivamente entrevistados
+    nrow(amostra_clientes),
+    # Calcula a satisfação média da amostra (estatística x̄)
+    round(mean(amostra_clientes$satisfacao), 3),
+    # Calcula o desvio padrão da amostra (estatística s)
+    round(sd(amostra_clientes$satisfacao), 3),
+    # Calcula a proporção amostral de muito satisfeitos
+    paste0(round(mean(amostra_clientes$satisfacao >= 8) * 100, 1), "%")
+  ),
+  
+  # Explica como interpretar cada resultado para o negócio
+  `Interpretação` = c(
+    "Tamanho da amostra", 
+    "estimativa de μ", 
+    "estimativa do σ", 
+    "estimativa da % de clientes altamente satisfeitos"
+  )
+)
+
+# Mostra os resultados que o analista apresentaria para a empresa
+resultados_pesquisa
+```
+
+
+
+
+## Quiz 1
+
+**Cenário:** Empresa com 8.000 garrafas de vinho. Analista seleciona 
+120 garrafas para avaliação de qualidade por especialistas.
+
+**Identifique:**
+
+1. Qual é a população?
+2. Qual é a amostra?
+3. O que representa $\mu$?
+4. O que representa $\bar{x}$?
+5. Por que não avaliar todas as garrafas?
+
+
+
+
+## Quiz 2
+
+**Cenário:** Rede com 1.200 farmácias. Analista seleciona 80 lojas para 
+estudar ticket médio.
+
+**Identifique:**
+
+1. Qual é a população?
+2. Qual é a amostra?
+3. O que representa $\mu$?
+4. O que representa $\bar{x}$?
+5. Vantagens da abordagem amostral?
+
+
+
+
+
+# Amostragem 
+
+## O que é Amostragem?
+
+**Amostragem** é o processo de selecionar um subconjunto 
+representativo de uma população.
+
+**Características de uma Boa Amostra:**
+
+- **Representativa**: Reflete características da população
+- **Tamanho adequado**: Equilibra precisão e custo
+- **Sem viés**: Processo não favorece grupos específicos
+- **Aleatória**: Em amostragem probabilística, probabilidade conhecida 
+de seleção
+
+**Princípio fundamental**: Apenas amostras probabilísticas permitem 
+inferência estatística válida.
+
+
+
+## Amostragem Aleatória Simples em R
+
+Exemplo com Dados Municipais do PNUD (`pnud_muni`)
+
+```{r}
+# Carregar pacotes
+library(abjData)   # Fornece dados municipais do PNUD
+
+# Carregar a base completa
+data("pnud_muni")
+
+# Filtrar apenas os dados mais recentes
+dados_recentes <- pnud_muni %>%
+  filter(ano == max(ano))  # ano mais recente disponível
+
+# Verificar estrutura
+glimpse(dados_recentes)
+```
+
+
+
+
+
+## Amostragem Estratificada com o pacote `sampling`
+
+Exemplo com Dados Municipais do PNUD (`pnud_muni`)
+
+```{r}
+# Carregar base de dados e filtrar o ano mais recente
+data("pnud_muni")
+dados_recentes <- pnud_muni %>%
+  filter(ano == max(ano)) %>%
+  select(uf, municipio, pop, espvida, rdpc, idhm)
+
+# Tamanho total da amostra desejada
+n_total <- 150
+
+# Calcular tamanho proporcional da amostra por UF
+tamanhos <- dados_recentes %>%
+  # Contar o número de municípios em cada UF
+  count(uf, name = "n_uf") %>%
+  # Calcular a proporção de municípios da UF em relação ao total de municípios
+  mutate(
+    prop = n_uf / sum(n_uf),
+    # Determinar o tamanho da amostra da UF proporcional ao total desejado
+    n_amostra = round(prop * n_total),
+    # Corrigir possíveis casos com zero observações (garante mínimo de 1)
+    n_amostra = if_else(n_amostra == 0, 1L, n_amostra)
+  )
+
+
+# Realizar amostragem estratificada proporcional
+set.seed(123)
+amostra_ids <- sampling::strata(
+  data = dados_recentes,           # data frame com a população (municípios do ano mais recente)
+  stratanames = "uf",              # variável que define os estratos 
+  size = tamanhos$n_amostra,       # número de unidades a serem sorteadas por estrato (UF)
+  method = "srswor"                # aas sem reposição
+)
+
+# Selecionar observações da amostra
+amostra_proporcional <- dados_recentes[amostra_ids$ID_unit, ]
+```
+
+👉 A função `strata()` sorteia municípios **proporcionalmente à quantidade por UF**, garantindo pelo menos 1 município por estado.
+
+👉 `ID_unit` contém os índices sorteados que usamos para extrair a 
+amostra final.
+
+
+
+
+## Visualizando a Amostra Estratificada
+
+Quantos Municípios Foram Sorteados por UF?
+
+```{r}
+# Contar número de municípios sorteados por UF
+amostra_proporcional %>%
+  count(uf, name = "n_sorteados") %>%
+  arrange(desc(n_sorteados))
+```
+
+
+
+
+
+## Exercício
+
+Aplicar os conceitos aprendidos de amostragem aos dados do PNUD:
+
+1. Filtrar os dados para o ano mais recente disponível
+2. Criar uma **amostra estratificada proporcional por UF** com 150 municípios
+3. Estime a média do IDHM da amostra estratificada
+
+- Dicas:
+
+- Use a base `pnud_muni` do pacote `abjData`
+- Utilize `set.seed(123)` para reprodutibilidade
+- Para a amostragem estratificada, siga o padrão visto nos slides anteriores
+
+
+
+
+
+# Parâmetro, Estimador, Estatística e Estimativa 
+
+
+## Quiz 3
+
+Identifique: Parâmetro, Estimador, Estatística ou Estimativa?
+
+Uma empresa de e-commerce analisa seus pedidos:
+
+1. A fórmula $S^2 = \frac{\sum(X_i - \bar{X})^2}{n-1}$ para calcular variância
+2. O valor R$ 127,50 calculado como média de 1.000 pedidos
+3. A verdadeira proporção de clientes satisfeitos (nota ≥ 8)
+4. A variável aleatória $\hat{p}$ = proporção amostral de satisfeitos
+5. O desvio padrão σ = R$ 45,00 de todos os pedidos históricos
+
+
+
+
+# Distribuição Amostral 
+
+## O Problema Central da Inferência Estatística 
+
+Um analista de dados coleta uma amostra de 100 funcionários e calcula satisfação média $\bar{x} = 7.2$. Mas se ele repetisse o processo com outra amostra de 100 funcionários, obteria $\bar{x} = 7.0$. Uma terceira amostra resultaria em $\bar{x} = 7.4$.
+
+**A Distribuição Amostral** é a distribuição de probabilidade de todas as possíveis médias amostrais que poderíamos obter se repetíssemos o processo de amostragem infinitas vezes.
+
+**Por que isso é importante?** A distribuição amostral nos permite quantificar a variabilidade dos estimadores e fundamenta todos os métodos de inferência estatística.
+
+
+
+
+## Simulação: Visualizando uma Distribuição Amostral
+
+Simularemos 1.000 amostras diferentes para observar como as médias amostrais se distribuem. Isso permitirá visualizar concretamente o conceito de distribuição amostral.
+
+**Cenário**: População de 50.000 funcionários com satisfação média $\mu = 7.5$ e desvio-padrão $\sigma = 1.2$. Cada amostra terá 50 funcionários.
+
+
+```{r}
+#| echo: false
+
+# Fixa a semente para garantir que todos obtenham os mesmos resultados
+set.seed(456)
+
+# Simula uma população grande de funcionários
+populacao_funcionarios <- tibble(
+  # Cria IDs únicos de 1 a 50.000
+  id = 1:50000,
+  # Gera satisfação usando distribuição normal
+  # rnorm() cria números aleatórios normais
+  # mean = 7.5 define a média populacional
+  # sd = 1.2 define o desvio padrão populacional
+  satisfacao = rnorm(50000, mean = 7.5, sd = 1.2)
+)
+
+# Ajusta valores para ficarem entre 0 e 10 (escala de satisfação)
+# pmin() garante que nenhum valor seja maior que 10
+# pmax() garante que nenhum valor seja menor que 0
+populacao_funcionarios <- populacao_funcionarios %>%
+  mutate(satisfacao = pmin(10, pmax(0, satisfacao)))
+
+# Calcula os parâmetros populacionais verdadeiros
+# Estes são os valores que queremos estimar com nossas amostras
+parametros_populacionais <- tibble(
+  Parâmetro = c("μ (média populacional)", "σ (desvio populacional)", "N (tamanho)"),
+  Valor = c(
+    round(mean(populacao_funcionarios$satisfacao), 3),
+    round(sd(populacao_funcionarios$satisfacao), 3),
+    nrow(populacao_funcionarios)
+  )
+)
+
+# Exibe os parâmetros populacionais
+parametros_populacionais
+
+# Agora vamos simular o processo de coleta de muitas amostras
+# Cada amostra terá 50 funcionários
+n_amostra <- 50
+n_simulacoes <- 1000
+
+# Cria lista para armazenar todas as médias amostrais
+medias_amostrais <- numeric(n_simulacoes)  # Vetor vazio para 1000 médias
+
+# Loop para coletar 1000 amostras e calcular suas médias
+for(i in 1:n_simulacoes) {
+  # Coleta uma amostra aleatória de 50 funcionários
+  amostra_atual <- populacao_funcionarios %>%
+    slice_sample(n = n_amostra)
+  
+  # Calcula a média desta amostra e armazena
+  medias_amostrais[i] <- mean(amostra_atual$satisfacao)
+}
+
+# Analisa as propriedades da distribuição amostral
+resultados_simulacao <- tibble(
+  Propriedade = c(
+    "Média das médias amostrais", 
+    "Erro padrão empírico (observado)",
+    "Erro padrão teórico (fórmula)",
+    "Média populacional (μ)",
+    "Diferença (empírico - teórico)"
+  ),
+  Valor = c(
+    round(mean(medias_amostrais), 3),
+    round(sd(medias_amostrais), 3),
+    round(sd(populacao_funcionarios$satisfacao) / sqrt(n_amostra), 3),
+    round(mean(populacao_funcionarios$satisfacao), 3),
+    round(sd(medias_amostrais) - sd(populacao_funcionarios$satisfacao) / sqrt(n_amostra), 3)
+  )
+)
+
+# Exibe os resultados da simulação
+resultados_simulacao
+```
+
+
+
+
+## Visualizando a Distribuição Amostral
+
+```{r}
+#| echo: false
+
+# Prepara dados para criar os gráficos comparativos
+dados_para_grafico <- tibble(medias = medias_amostrais)
+
+# Cria gráfico da população original (uma amostra para visualização)
+# Usamos sample_n() para pegar apenas 2000 observações (facilita visualização)
+amostra_pop_grafico <- populacao_funcionarios %>% 
+  sample_n(2000)
+
+p1 <- amostra_pop_grafico %>%
+  ggplot(aes(x = satisfacao)) +
+  # geom_histogram() cria histograma
+  # aes(y = after_stat(density)) converte frequências em densidades
+  geom_histogram(aes(y = after_stat(density)), 
+                 bins = 30, fill = "#95a5a6", alpha = 0.7, color = "white") +
+  # geom_vline() adiciona linha vertical na média populacional
+  geom_vline(xintercept = mean(populacao_funcionarios$satisfacao), 
+             color = "#e74c3c", linewidth = 1.5, linetype = "dashed") +
+  labs(title = "População Original",
+       subtitle = paste("N = 50.000, μ =", round(mean(populacao_funcionarios$satisfacao), 2)),
+       x = "Satisfação Individual", y = "Densidade") +
+  theme_minimal()
+
+# Cria gráfico da distribuição amostral das médias
+p2 <- ggplot(dados_para_grafico, aes(x = medias)) +
+  geom_histogram(aes(y = after_stat(density)), 
+                 bins = 40, fill = "#3498db", alpha = 0.7, color = "white") +
+  # Adiciona linha na média populacional verdadeira
+  geom_vline(xintercept = mean(populacao_funcionarios$satisfacao), 
+             color = "#2c3e50", linewidth = 1.5, linetype = "dashed") +
+  labs(title = "Distribuição Amostral das Médias",
+       subtitle = paste("1000 amostras, n = 50, SE =", round(sd(medias_amostrais), 3)),
+       x = "Médias Amostrais", y = "Densidade") +
+  theme_minimal()
+
+# Combina os dois gráficos verticalmente
+# O operador / do patchwork empilha gráficos
+p1 / p2
+```
+
+
+
+
+## Simulação: Proporção de Clientes Satisfeitos
+
+```{r}
+#| echo: false
+
+# Simula população de clientes onde cada um pode estar satisfeito ou não
+set.seed(789)
+
+# Define a proporção populacional verdadeira de clientes satisfeitos
+p_populacional <- 0.68  # 68% dos clientes estão satisfeitos
+
+# Cria população de clientes
+# rbinom() gera variáveis binárias (0 ou 1)
+# size = 1 significa cada "experimento" tem apenas 1 tentativa
+# prob = p_populacional define a probabilidade de sucesso (satisfeito = 1)
+populacao_clientes <- tibble(
+  cliente_id = 1:20000,
+  satisfeito = rbinom(20000, size = 1, prob = p_populacional)
+)
+
+# Calcula a proporção real obtida na população simulada
+# mean() de 0s e 1s nos dá a proporção de 1s
+p_real_populacao <- mean(populacao_clientes$satisfeito)
+
+# Mostra características da população
+caracteristicas_pop_clientes <- tibble(
+  Característica = c("Tamanho da população", "Proporção satisfeitos (p)", "Número de satisfeitos"),
+  Valor = c(
+    nrow(populacao_clientes),
+    round(p_real_populacao, 3),
+    sum(populacao_clientes$satisfeito)
+  )
+)
+
+# Exibe características da população
+caracteristicas_pop_clientes
+
+# Agora simula muitas pesquisas para ver como as proporções amostrais variam
+n_amostra_prop <- 100  # Cada pesquisa terá 100 clientes
+n_simulacoes_prop <- 800  # Faremos 800 pesquisas
+
+# Cria vetor para armazenar as proporções de cada pesquisa
+proporcoes_amostrais <- numeric(n_simulacoes_prop)
+
+# Loop para realizar 800 pesquisas diferentes
+for(i in 1:n_simulacoes_prop) {
+  # Realiza uma pesquisa: amostra 100 clientes
+  pesquisa_atual <- populacao_clientes %>%
+    slice_sample(n = n_amostra_prop)
+  
+  # Calcula proporção de satisfeitos nesta pesquisa
+  # mean() de variável binária = proporção de 1s
+  proporcoes_amostrais[i] <- mean(pesquisa_atual$satisfeito)
+}
+
+# Analisa os resultados das 800 pesquisas
+analise_proporcoes <- tibble(
+  Estatística = c(
+    "Proporção populacional (p)",
+    "Média das proporções amostrais",
+    "Erro padrão empírico (observado)",
+    "Erro padrão teórico (fórmula)",
+    "Diferença entre erros padrão"
+  ),
+  Valor = c(
+    round(p_real_populacao, 3),
+    round(mean(proporcoes_amostrais), 3),
+    round(sd(proporcoes_amostrais), 3),
+    round(sqrt(p_real_populacao * (1 - p_real_populacao) / n_amostra_prop), 3),
+    round(sd(proporcoes_amostrais) - sqrt(p_real_populacao * (1 - p_real_populacao) / n_amostra_prop), 3)
+  )
+)
+
+# Exibe análise das proporções
+analise_proporcoes
+```
+
+
+
+
+## Visualizando a Distribuição Amostral da Proporção
+
+```{r}
+#| echo: false
+
+# Prepara dados para o gráfico
+dados_proporcao <- tibble(proporcoes = proporcoes_amostrais)
+
+# Cria gráfico da distribuição amostral das proporções
+ggplot(dados_proporcao, aes(x = proporcoes)) +
+  # Histograma das proporções observadas nas 800 pesquisas
+  geom_histogram(aes(y = after_stat(density)), 
+                 bins = 25, fill = "#9b59b6", alpha = 0.7, color = "white") +
+  # Adiciona curva normal teórica para comparação
+  # stat_function() plota uma função matemática
+  stat_function(fun = dnorm, 
+                args = list(mean = p_real_populacao, 
+                           sd = sqrt(p_real_populacao * (1 - p_real_populacao) / n_amostra_prop)),
+                color = "#2c3e50", linewidth = 1.2, linetype = "dashed") +
+  # Linha vertical na proporção populacional verdadeira
+  geom_vline(xintercept = p_real_populacao, 
+             color = "#2c3e50", linewidth = 1.5, linetype = "dotted") +
+  labs(title = "Distribuição Amostral da Proporção",
+       subtitle = paste("800 pesquisas de n =", n_amostra_prop, "- Curva tracejada = distribuição normal teórica"),
+       x = "Proporções Amostrais", 
+       y = "Densidade") +
+  theme_minimal()
+```
+
+
+
+
+## Teorema Central do Limite
+
+Usaremos uma distribuição exponencial (altamente assimétrica) para demonstrar que médias amostrais tendem à normalidade independentemente da forma populacional.
+
+**Cenário**: Tempo entre chegadas de clientes (distribuição exponencial - muitas chegadas rápidas, poucas esperas longas).
+
+
+```{r}
+#| echo: false
+
+# Cria população com distribuição exponencial (muito diferente da normal)
+set.seed(111)
+
+# rexp() gera números aleatórios com distribuição exponencial
+# rate = 0.3 controla a "velocidade" da exponencial (maior rate = valores menores)
+populacao_exponencial <- tibble(
+  id = 1:10000,
+  tempo_espera = rexp(10000, rate = 0.3)
+)
+
+# Calcula características da população exponencial
+caracteristicas_exp <- tibble(
+  Característica = c("Média populacional", "Desvio padrão populacional", "Forma da distribuição"),
+  Valor = c(
+    round(mean(populacao_exponencial$tempo_espera), 2),
+    round(sd(populacao_exponencial$tempo_espera), 2),
+    "Exponencial (muito assimétrica)"
+  )
+)
+
+# Exibe características
+caracteristicas_exp
+
+# Agora vamos testar diferentes tamanhos de amostra
+tamanhos_tcl <- c(2, 10, 40)
+
+# Lista para armazenar dados de cada tamanho
+dados_tcl_lista <- list()
+
+# Loop pelos tamanhos de amostra
+for(k in 1:length(tamanhos_tcl)) {
+  tamanho_tcl_atual <- tamanhos_tcl[k]
+  
+  # Coleta 500 médias amostrais para este tamanho
+  medias_tcl <- numeric(500)
+  
+  for(i in 1:500) {
+    # Amostra do tamanho especificado
+    amostra_tcl <- populacao_exponencial %>%
+      slice_sample(n = tamanho_tcl_atual)
+    
+    # Calcula média
+    medias_tcl[i] <- mean(amostra_tcl$tempo_espera)
+  }
+  
+  # Armazena dados com rótulo do tamanho
+  dados_tcl_k <- tibble(
+    tamanho = paste("n =", tamanho_tcl_atual),
+    media = medias_tcl
+  )
+  
+  dados_tcl_lista[[k]] <- dados_tcl_k
+}
+
+# Adiciona dados da população original para comparação
+# sample() para pegar apenas 1000 valores (facilita visualização)
+dados_pop_original <- tibble(
+  tamanho = "População\n(Exponencial)",
+  media = sample(populacao_exponencial$tempo_espera, 1000)
+)
+
+# Combina todos os dados
+dados_tcl_completos <- bind_rows(dados_pop_original, dados_tcl_lista)
+
+# Define ordem correta para os gráficos
+# factor() com levels= controla a ordem de exibição
+dados_tcl_completos <- dados_tcl_completos %>%
+  mutate(tamanho = factor(tamanho, 
+                         levels = c("População\n(Exponencial)", "n = 2", "n = 10", "n = 40")))
+
+# Verifica quantas observações temos para cada grupo
+resumo_tcl <- dados_tcl_completos %>%
+  count(tamanho, name = "n_observacoes")
+
+# Exibe resumo
+resumo_tcl
+```
+
+
+
+
+
+## TCL: Visualizando a Convergência para Normalidade
+
+
+```{r}
+#| echo: false
+
+# Cria gráfico mostrando a transformação de assimétrica para normal
+ggplot(dados_tcl_completos, aes(x = media)) +
+  # Histograma para cada grupo (tamanho de amostra)
+  geom_histogram(bins = 30, fill = "#3498db", alpha = 0.7, color = "white") +
+  # facet_wrap() cria painéis separados para cada grupo
+  # scales = "free" permite que cada painel tenha sua própria escala
+  facet_wrap(~tamanho, scales = "free", ncol = 2) +
+  labs(title = "Teorema Central do Limite em Ação",
+       subtitle = "Note como a distribuição se torna mais normal conforme n aumenta",
+       x = "Valores / Médias Amostrais",
+       y = "Frequência") +
+  theme_minimal() +
+  # Personaliza aparência dos títulos dos painéis
+  theme(strip.text = element_text(size = 11, face = "bold"))
+```
+
+
+
+
+## Quiz 4: Distribuições Amostrais
+
+1. Para uma amostra de 36 observações com desvio-padrão s = 1.8, o 
+erro-padrão de $\bar{x}$ é:
+
+    a. 0.05
+    b. 0.30
+    c. 1.8
+    d. 6.0
+
+2. Para reduzir o erro-padrão de $\bar{x}$ pela metade, o tamanho 
+da amostra deve ser:
+
+    a. Dobrado
+    b. Quadruplicado
+    c. Reduzido pela metade
+    d. Triplicado
+
+3. O Teorema Central do Limite se refere à distribuição:
+
+    a. Da população
+    b. Da amostra
+    c. Amostral do estimador
+    d. Normal padrão
+
+
+
+
+
+
